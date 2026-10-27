@@ -1,0 +1,22 @@
+﻿{
+  "name": "trampou-admin",
+  "version": "1.0.0",
+  "description": "Painel Administrativo Independente do Trampou — Gestao, Banners, Usuarios e Monetizacao",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vite --port 3001 --host",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "trampou",
+    "admin",
+    "dashboard",
+    "supabase"
+  ],
+  "author": "John Tavares",
+  "license": "ISC",
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}
