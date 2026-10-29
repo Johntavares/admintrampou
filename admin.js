@@ -1333,10 +1333,12 @@
       if (btn) btn.style.display = 'inline-flex';
     });
     if ('caches' in window) {
-      caches.keys().then(keys => keys.forEach(k => { if (k !== 'trampou-admin-v2.0.0') caches.delete(k); }));
+      caches.keys().then(keys => keys.forEach(k => { if (k !== 'trampou-admin-v2.1.0') caches.delete(k); }));
     }
-    if ('serviceWorker' in navigator && (location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
-      navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(err => {
+        console.warn('Service Worker registro opcional:', err);
+      });
     }
     startLiveClock();
     initNavigation();
