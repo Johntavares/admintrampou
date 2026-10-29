@@ -23,6 +23,237 @@
   
   <!-- Estilos do Painel -->
   <link rel="stylesheet" href="admin.css">
+  <style id="trampou-feedbacks-ui-styles">
+    .btn-admin-primary, .btn-action-primary {
+      background: var(--admin-brand, #6825B3);
+      color: #FFFFFF !important;
+      border: 1px solid var(--admin-brand, #6825B3);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+      text-decoration: none;
+    }
+    .btn-admin-primary:hover, .btn-action-primary:hover {
+      background: var(--admin-brand-dark, #4C1D95);
+      border-color: var(--admin-brand-dark, #4C1D95);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(104, 37, 179, 0.2);
+    }
+    .tab-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 16px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+    .tab-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: #0F172A;
+      letter-spacing: -0.3px;
+      margin: 0 0 4px 0;
+    }
+    .tab-subtitle {
+      font-size: 13px;
+      color: #64748B;
+      margin: 0;
+      line-height: 1.4;
+    }
+    .tab-actions-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .btn-admin-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      color: #334155;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 9px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+    .btn-admin-secondary:hover {
+      background: #F8FAFC;
+      border-color: #6825B3;
+      color: #6825B3;
+      transform: translateY(-1px);
+    }
+    .admin-stats-grid {
+      display: grid !important;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
+      gap: 18px !important;
+      margin-bottom: 24px !important;
+    }
+    .admin-stat-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 16px;
+      padding: 18px 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .admin-stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+    }
+    .stat-icon-circle {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 19px;
+      flex-shrink: 0;
+    }
+    .stat-icon-circle.purple { background: #EDE9FE; color: #6825B3; }
+    .stat-icon-circle.gold { background: #FEF3C7; color: #D97706; }
+    .stat-icon-circle.blue { background: #EFF6FF; color: #2563EB; }
+    .stat-icon-circle.red { background: #FEF2F2; color: #DC2626; }
+    .stat-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+    .stat-label {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #64748B;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .stat-number {
+      font-size: 24px;
+      font-weight: 900;
+      color: #0F172A;
+      letter-spacing: -0.5px;
+      line-height: 1.1;
+    }
+    .admin-filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 14px;
+      padding: 14px 18px;
+      margin-bottom: 22px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+    .filter-search-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 240px;
+      display: flex;
+      align-items: center;
+    }
+    .filter-search-wrap i {
+      position: absolute;
+      left: 14px;
+      color: #94A3B8;
+      font-size: 13.5px;
+      pointer-events: none;
+    }
+    .filter-search-wrap input {
+      width: 100%;
+      height: 40px;
+      padding: 0 14px 0 38px;
+      border: 1px solid #E2E8F0;
+      border-radius: 10px;
+      font-size: 13px;
+      color: #0F172A;
+      background: #F1F5F9;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+    .filter-search-wrap input:focus {
+      background: #FFFFFF;
+      border-color: #6825B3;
+      box-shadow: 0 0 0 3px rgba(104, 37, 179, 0.1);
+    }
+    .filter-select-wrap {
+      min-width: 185px;
+    }
+    .filter-select-wrap select {
+      width: 100%;
+      height: 40px;
+      padding: 0 12px;
+      border: 1px solid #E2E8F0;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #334155;
+      background: #FFFFFF;
+      outline: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .filter-select-wrap select:hover,
+    .filter-select-wrap select:focus {
+      border-color: #6825B3;
+    }
+    .admin-modal-body .admin-input-group input[type="text"],
+    .admin-modal-body .admin-input-group input[type="number"],
+    .admin-modal-body .admin-input-group input[type="date"],
+    .admin-modal-body .admin-input-group textarea,
+    .admin-modal-body .admin-input-group select {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 10px;
+      font-size: 13.5px;
+      color: #0F172A;
+      background: #F8FAFC;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+    .admin-modal-body .admin-input-group textarea {
+      resize: vertical;
+      min-height: 80px;
+      line-height: 1.45;
+    }
+    .admin-modal-body .admin-input-group input:focus,
+    .admin-modal-body .admin-input-group textarea:focus,
+    .admin-modal-body .admin-input-group select:focus {
+      background: #FFFFFF;
+      border-color: #6825B3;
+      box-shadow: 0 0 0 3px rgba(104, 37, 179, 0.12);
+    }
+    @media (max-width: 520px) {
+      .admin-stats-grid { grid-template-columns: 1fr !important; }
+      .tab-header-row { flex-direction: column; align-items: flex-start; }
+      .tab-actions-row, .tab-actions-row button { width: 100%; justify-content: center; }
+      .admin-filter-bar { flex-direction: column; align-items: stretch; }
+      .filter-search-wrap, .filter-select-wrap { width: 100%; min-width: 100%; }
+      .admin-feedbacks-grid { grid-template-columns: 1fr !important; }
+    }
+  </style>
 </head>
 <body>
 
@@ -125,6 +356,14 @@
             <span>Usuários Clientes</span>
           </div>
           <span class="nav-counter-pill" id="nav-users-count">0</span>
+        </li>
+
+        <li class="admin-nav-item" data-tab="feedbacks">
+          <div class="nav-item-left">
+            <i class="fa-solid fa-lightbulb"></i>
+            <span>Sugestões & Feedbacks</span>
+          </div>
+          <span class="nav-counter-pill" id="nav-feedbacks-count" style="background: rgba(245, 158, 11, 0.2); color: #B45309;">0</span>
         </li>
 
         <li class="admin-nav-item" data-tab="monetization">
@@ -392,6 +631,23 @@
               </div>
             </div>
           </div>
+
+          <!-- SEÇÃO RESUMIDA: ÚLTIMAS SUGESTÕES & FEEDBACKS DOS USUÁRIOS -->
+          <div class="admin-card-section" style="margin-top: 24px; margin-bottom: 0;">
+            <div class="admin-card-header">
+              <div class="admin-card-title-group">
+                <h4>Últimas Sugestões & Feedbacks dos Usuários</h4>
+                <span>Mensagens e ideias enviadas pelos clientes e profissionais no app</span>
+              </div>
+              <button class="btn-action-primary" onclick="window.AdminApp.switchTab('feedbacks')">
+                <span>Ver Todos & Responder</span>
+                <i class="fa-solid fa-arrow-right"></i>
+              </button>
+            </div>
+            <div id="dashboard-feedbacks-preview" style="padding: 16px;">
+              <!-- Preenchido via JS -->
+            </div>
+          </div>
         </section>
 
         <!-- ==========================================
@@ -606,6 +862,87 @@
           </div>
         </section>
 
+<!-- =========================================================
+             ABA: SUGESTÕES & FEEDBACKS DOS USUÁRIOS
+             ========================================================= -->
+        <section class="admin-tab-pane" id="tab-feedbacks">
+          <div class="tab-header-row">
+            <div>
+              <h2 class="tab-title">Sugestões & Feedbacks dos Usuários</h2>
+              <p class="tab-subtitle">Opiniões, ideias de melhorias, elogios e relatos de bugs enviados em tempo real pelos usuários do app</p>
+            </div>
+            <div class="tab-actions-row">
+              <button class="btn-admin-secondary" onclick="window.AdminApp.refreshFeedbacks()">
+                <i class="fa-solid fa-arrows-rotate"></i> Atualizar Feedbacks
+              </button>
+            </div>
+          </div>
+
+          <!-- Cards de Resumo de Feedbacks -->
+          <div class="admin-stats-grid">
+            <div class="admin-stat-card">
+              <div class="stat-icon-circle purple"><i class="fa-solid fa-lightbulb"></i></div>
+              <div class="stat-info">
+                <span class="stat-label">Total de Feedbacks</span>
+                <strong class="stat-number" id="stat-feedbacks-total">0</strong>
+              </div>
+            </div>
+            <div class="admin-stat-card">
+              <div class="stat-icon-circle gold"><i class="fa-solid fa-star"></i></div>
+              <div class="stat-info">
+                <span class="stat-label">Nota Média de Satisfação</span>
+                <strong class="stat-number" id="stat-feedbacks-rating">5.0 ⭐</strong>
+              </div>
+            </div>
+            <div class="admin-stat-card">
+              <div class="stat-icon-circle blue"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+              <div class="stat-info">
+                <span class="stat-label">Ideias & Sugestões</span>
+                <strong class="stat-number" id="stat-feedbacks-suggestions">0</strong>
+              </div>
+            </div>
+            <div class="admin-stat-card">
+              <div class="stat-icon-circle red"><i class="fa-solid fa-triangle-exclamation"></i></div>
+              <div class="stat-info">
+                <span class="stat-label">Problemas Relatados</span>
+                <strong class="stat-number" id="stat-feedbacks-issues">0</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Barra de Filtros de Feedbacks -->
+          <div class="admin-filter-bar">
+            <div class="filter-search-wrap">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="filter-feedback-search" placeholder="Buscar por usuário, título ou mensagem..." oninput="window.AdminApp.filterFeedbacks()">
+            </div>
+            <div class="filter-select-wrap">
+              <select id="filter-feedback-type" onchange="window.AdminApp.filterFeedbacks()">
+                <option value="all">Todos os Tipos</option>
+                <option value="sugestao">💡 Sugestão / Ideia</option>
+                <option value="elogio">⭐ Elogio</option>
+                <option value="problema">⚠️ Problema / Bug</option>
+                <option value="outro">💬 Outro</option>
+              </select>
+            </div>
+            <div class="filter-select-wrap">
+              <select id="filter-feedback-status" onchange="window.AdminApp.filterFeedbacks()">
+                <option value="all">Todos os Status</option>
+                <option value="pendente">⏳ Pendente</option>
+                <option value="em_analise">🔍 Em Análise</option>
+                <option value="respondido">💬 Respondido</option>
+                <option value="implementado">✅ Implementado</option>
+                <option value="arquivado">📁 Arquivado</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Container de Lista de Feedbacks -->
+          <div id="admin-feedbacks-list" class="admin-feedbacks-grid">
+            <!-- Renderizado dinamicamente pelo JavaScript -->
+          </div>
+        </section>
+
       </main>
 
       <!-- BARRA DE NAVEGAÇÃO INFERIOR PARA MOBILE (PWA) -->
@@ -776,6 +1113,97 @@
           <button type="submit" class="btn-action-primary">
             <i class="fa-solid fa-check"></i>
             <span>Confirmar Assinatura</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       MODAL: RESPONDER FEEDBACK DO USUÁRIO
+       ========================================================= -->
+  <div class="admin-modal-overlay" id="modal-feedback-reply">
+    <div class="admin-modal-box" style="max-width: 620px;">
+      <div class="admin-modal-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 36px; height: 36px; border-radius: 10px; background: #FAF5FF; color: #6825B3; display: flex; align-items: center; justify-content: center; font-size: 16px;">
+            <i class="fa-solid fa-reply"></i>
+          </div>
+          <div>
+            <h4 style="margin: 0; font-size: 16px; font-weight: 800; color: #1E293B;">Responder Feedback</h4>
+            <span style="font-size: 12px; color: #64748B;">Envie uma resposta oficial da equipe para o usuário</span>
+          </div>
+        </div>
+        <button class="admin-modal-close" onclick="window.AdminApp.closeFeedbackReplyModal()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="form-feedback-reply" onsubmit="event.preventDefault(); window.AdminApp.saveFeedbackReply();">
+        <input type="hidden" id="reply-feedback-id">
+        <div class="admin-modal-body">
+          <!-- Mensagem original do usuário -->
+          <div style="background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 14px; padding: 14px 16px; margin-bottom: 18px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="admin-avatar-circle" id="reply-user-avatar" style="width: 28px; height: 28px; font-size: 11px; background: #6825B3;">UT</div>
+                <strong id="reply-user-name" style="font-size: 13.5px; color: #0F172A;">Nome do Usuário</strong>
+              </div>
+              <span id="reply-feedback-badge" class="fb-badge sugestao">Sugestão</span>
+            </div>
+            <div id="reply-feedback-title" style="font-size: 13px; font-weight: 700; color: #1E293B; margin-bottom: 4px;"></div>
+            <p id="reply-feedback-message" style="font-size: 12.5px; color: #475569; margin: 0; line-height: 1.5; white-space: pre-wrap;"></p>
+            <div id="reply-user-contacts" style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #CBD5E1; display: flex; gap: 12px; font-size: 11.5px; color: #64748B; flex-wrap: wrap;"></div>
+          </div>
+
+          <!-- Campo de Resposta Oficial -->
+          <div class="admin-input-group">
+            <label for="feedback-reply-text" style="display: flex; justify-content: space-between; align-items: center;">
+              <span><strong>Sua Resposta Oficial da Equipe Trampou *</strong></span>
+              <span style="font-size: 11px; font-weight: normal; color: #6825B3;">Ficará gravada no histórico</span>
+            </label>
+            <textarea id="feedback-reply-text" rows="4" required placeholder="Digite sua resposta para o usuário (ex: Olá John! Agradecemos pela sua mensagem...)"></textarea>
+          </div>
+
+          <!-- Status após responder -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="admin-input-group">
+              <label for="feedback-reply-status">Status do Feedback</label>
+              <select id="feedback-reply-status">
+                <option value="respondido" selected>💬 Respondido</option>
+                <option value="em_analise">🔍 Em Análise</option>
+                <option value="implementado">✅ Implementado</option>
+                <option value="arquivado">📁 Arquivado</option>
+                <option value="pendente">⏳ Pendente</option>
+              </select>
+            </div>
+            <div class="admin-input-group">
+              <label for="feedback-admin-notes">Notas Internas (Privadas da Equipe)</label>
+              <input type="text" id="feedback-admin-notes" placeholder="Ex: Sugestão para o próximo update">
+            </div>
+          </div>
+
+          <!-- Ações Rápidas de Envio Externo -->
+          <div style="background: #FAF5FF; border: 1px solid #E9D5FF; border-radius: 12px; padding: 12px 14px; margin-top: 6px;">
+            <span style="font-size: 11.5px; font-weight: 700; color: #581C87; display: block; margin-bottom: 8px;">
+              <i class="fa-solid fa-paper-plane"></i> Enviar também diretamente para o usuário:
+            </span>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button type="button" id="btn-reply-whatsapp" class="btn-action-primary" style="background: #059669; border-color: #059669; font-size: 11.5px; padding: 7px 12px;" onclick="window.AdminApp.sendReplyViaWhatsApp()">
+                <i class="fa-brands fa-whatsapp"></i> Abrir WhatsApp com a Resposta
+              </button>
+              <button type="button" id="btn-reply-email" class="btn-admin-secondary" style="font-size: 11.5px; padding: 7px 12px;" onclick="window.AdminApp.sendReplyViaEmail()">
+                <i class="fa-regular fa-envelope"></i> Abrir E-mail com a Resposta
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="admin-modal-footer">
+          <button type="button" class="btn-admin-secondary" onclick="window.AdminApp.closeFeedbackReplyModal()">Cancelar</button>
+          <button type="submit" class="btn-action-primary" id="btn-submit-reply">
+            <i class="fa-solid fa-floppy-disk"></i>
+            <span>Salvar Resposta Oficial</span>
           </button>
         </div>
       </form>

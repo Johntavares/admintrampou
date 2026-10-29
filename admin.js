@@ -21,6 +21,7 @@
     users: [],
     categories: [],
     subscriptions: [],
+    feedbacks: [],
     currentTab: 'dashboard',
     isLoading: false
   };
@@ -92,17 +93,14 @@
   }
 
   // =========================================================
-  // NAVEGAÇÃO DE ABAS (DESKTOP & MOBILE BOTTOM BAR)
+  // NAVEGAÇÃO DE ABAS
   // =========================================================
   function initNavigation() {
     const navItems = document.querySelectorAll('.admin-nav-item, .bottom-nav-item[data-tab]');
     navItems.forEach(item => {
       item.addEventListener('click', () => {
         const targetTab = item.getAttribute('data-tab');
-        if (targetTab) {
-          switchTab(targetTab);
-          closeMobileSidebar();
-        }
+        if (targetTab) switchTab(targetTab);
       });
     });
   }
@@ -110,17 +108,8 @@
   function switchTab(tabId) {
     state.currentTab = tabId;
 
-    // Atualiza classes do menu desktop
+    // Atualiza classes do menu
     document.querySelectorAll('.admin-nav-item').forEach(item => {
-      if (item.getAttribute('data-tab') === tabId) {
-        item.classList.add('active');
-      } else {
-        item.classList.remove('active');
-      }
-    });
-
-    // Atualiza classes da barra inferior mobile
-    document.querySelectorAll('.bottom-nav-item[data-tab]').forEach(item => {
       if (item.getAttribute('data-tab') === tabId) {
         item.classList.add('active');
       } else {
@@ -131,11 +120,12 @@
     // Atualiza títulos do topo
     const titles = {
       dashboard: 'Visão Geral',
-      banners: 'Banners & Anúncios',
-      professionals: 'Base de Profissionais',
+      banners: 'Gerenciador de Banners & Anúncios',
+      professionals: 'Base de Profissionais Autônomos',
       users: 'Usuários Clientes',
-      monetization: 'Monetização & Planos PRO',
-      categories: 'Categorias de Serviços'
+      monetization: 'Monetização, Faturamento & Planos PRO',
+      categories: 'Categorias de Serviços',
+      feedbacks: 'Sugestões & Feedbacks dos Usuários'
     };
     const titleEl = document.getElementById('admin-current-page-title');
     if (titleEl) titleEl.textContent = titles[tabId] || 'Painel Administrativo';
@@ -148,8 +138,9 @@
     const activePane = document.getElementById(`tab-${tabId}`);
     if (activePane) activePane.classList.add('active');
 
-    // Rola para o topo suavemente no celular
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (tabId === 'feedbacks' && typeof renderFeedbacks === 'function') {
+      renderFeedbacks();
+    }
   }
 
   // =========================================================
@@ -191,7 +182,8 @@
         fetchProfessionals(),
         fetchUsers(),
         fetchCategories(),
-        fetchSubscriptions()
+        fetchSubscriptions(),
+        fetchFeedbacks()
       ]);
 
       renderDashboard();
@@ -200,6 +192,7 @@
       renderUsers();
       renderMonetization();
       renderCategories();
+      renderFeedbacks();
       updateCounters();
     } catch (err) {
       console.error('Erro ao carregar dados do Supabase:', err);
@@ -214,20 +207,18 @@
     const uCount = document.getElementById('nav-users-count');
     const sCount = document.getElementById('nav-subs-count');
     const cCount = document.getElementById('nav-cats-count');
-
-    const botB = document.getElementById('bottom-banners-count');
-    const botP = document.getElementById('bottom-pros-count');
-    const botU = document.getElementById('bottom-users-count');
+    const fbCount = document.getElementById('nav-feedbacks-count');
 
     if (bCount) bCount.textContent = state.banners.length;
     if (pCount) pCount.textContent = state.professionals.length;
     if (uCount) uCount.textContent = state.users.length;
     if (sCount) sCount.textContent = state.subscriptions.filter(s => s.status === 'active').length;
     if (cCount) cCount.textContent = state.categories.length;
-
-    if (botB) botB.textContent = state.banners.length;
-    if (botP) botP.textContent = state.professionals.length;
-    if (botU) botU.textContent = state.users.length;
+    if (fbCount) {
+      const pendings = state.feedbacks.filter(f => f.status === 'pendente').length;
+      fbCount.textContent = pendings;
+      fbCount.title = `${pendings} feedback(s) pendente(s)`;
+    }
   }
 
   // 1. Banners
@@ -281,7 +272,7 @@
 
   // 5. Assinaturas PRO
   async function fetchSubscriptions() {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/pro_subscriptions?select=*,professional_profiles(*,profiles(full_name,email,phone))&order=created_at.desc`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/pro_subscriptions?select=*,professional_profiles(*,profiles(full_name,email,phone_whatsapp))&order=created_at.desc`, {
       headers: getHeaders()
     });
     if (res.ok) {
@@ -317,6 +308,15 @@
     const totalMRR = activeSubs.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
     if (mrrEl) mrrEl.textContent = formatCurrency(totalMRR);
     if (activeSubsEl) activeSubsEl.textContent = `${activeSubs.length} assinaturas ativas`;
+
+    // KPI Feedbacks
+    const totalFeedbacksEl = document.getElementById('kpi-total-feedbacks');
+    const pendingFeedbacksEl = document.getElementById('kpi-pending-feedbacks');
+    if (totalFeedbacksEl) totalFeedbacksEl.textContent = state.feedbacks.length;
+    if (pendingFeedbacksEl) {
+      const pend = state.feedbacks.filter(f => f.status === 'pendente').length;
+      pendingFeedbacksEl.innerHTML = `<i class="fa-solid fa-comment-dots"></i> ${pend} pendente${pend === 1 ? '' : 's'}`;
+    }
 
     // Resumo Banners
     const dashBanners = document.getElementById('dashboard-banners-preview');
@@ -367,6 +367,47 @@
       }
     }
 
+    // Resumo Feedbacks no Dashboard
+    const dashFeedbacks = document.getElementById('dashboard-feedbacks-preview');
+    if (dashFeedbacks) {
+      const recentFbs = state.feedbacks.slice(0, 3);
+      if (recentFbs.length === 0) {
+        dashFeedbacks.innerHTML = `<p style="font-size: 13px; color: #94A3B8; text-align: center; padding: 20px;">Nenhuma sugestão ou feedback recebido ainda.</p>`;
+      } else {
+        dashFeedbacks.innerHTML = recentFbs.map(f => {
+          const badgeLabels = {
+            sugestao: '💡 Sugestão',
+            elogio: '⭐ Elogio',
+            problema: '⚠️ Problema',
+            outro: '💬 Outro'
+          };
+          const dateStr = f.created_at ? new Date(f.created_at).toLocaleDateString('pt-BR') : '';
+          const hasReply = !!f.admin_reply;
+          return `
+            <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+              <div style="flex: 1; min-width: 200px;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap;">
+                  <strong style="font-size: 13px; color: #0F172A;">${escapeHTML(f.user_name || 'Usuário')}</strong>
+                  <span class="fb-badge ${f.feedback_type || 'sugestao'}" style="font-size: 10px; padding: 2px 8px;">${badgeLabels[f.feedback_type] || f.feedback_type}</span>
+                  <span style="font-size: 11px; color: #94A3B8;">${dateStr}</span>
+                  ${hasReply 
+                    ? `<span style="font-size: 11px; color: #4F46E5; font-weight: 700;"><i class="fa-solid fa-check-double"></i> Respondido</span>` 
+                    : `<span style="font-size: 11px; color: #D97706; font-weight: 700;"><i class="fa-solid fa-clock"></i> Aguardando resposta</span>`}
+                </div>
+                <div style="font-size: 12.5px; color: #334155; font-weight: 600;">${escapeHTML(f.title || '')}</div>
+                <p style="font-size: 12px; color: #64748B; margin: 2px 0 0; max-height: 38px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${escapeHTML(f.message || '')}</p>
+              </div>
+              <div>
+                <button class="btn-action-primary" style="padding: 6px 12px; font-size: 11.5px; background: #6825B3; border-color: #6825B3;" onclick="window.AdminApp.openFeedbackReplyModal('${f.id}')">
+                  <i class="fa-solid fa-reply"></i> ${hasReply ? 'Ver / Editar Resposta' : 'Responder'}
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
     // Atualiza o Relógio do Tempo da Base Total
     renderAdminTimeClock();
   }
@@ -397,17 +438,23 @@
       return `
         <div class="banner-item-card ${b.active ? '' : 'inactive'}" id="banner-card-${b.id}">
           <!-- Prévia ao Vivo do Banner -->
-          <div class="banner-live-preview ${b.theme || 'purple-viral'}">
-            <span class="preview-badge-pill">${escapeHTML(b.badge_text || 'PARCEIRO')}</span>
-            <div class="preview-texts">
-              <h5>${escapeHTML(b.title)}</h5>
-              <p>${escapeHTML(b.description || '')}</p>
+          ${b.image_url ? `
+            <div style="border-radius: 12px; overflow: hidden; aspect-ratio: 2.5 / 1; position: relative; background: #0F172A; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+              <img src="${b.image_url}" alt="${escapeHTML(b.title)}" style="width: 100%; height: 100%; object-fit: cover; display: block;">
             </div>
-            <div class="preview-cta-btn">
-              <span>${escapeHTML(b.cta_text || 'Conhecer')}</span>
-              <i class="fa-solid fa-arrow-right"></i>
+          ` : `
+            <div class="banner-live-preview ${b.theme || 'purple-viral'}">
+              <span class="preview-badge-pill">${escapeHTML(b.badge_text || 'PARCEIRO')}</span>
+              <div class="preview-texts">
+                <h5>${escapeHTML(b.title)}</h5>
+                <p>${escapeHTML(b.description || '')}</p>
+              </div>
+              <div class="preview-cta-btn">
+                <span>${escapeHTML(b.cta_text || 'Conhecer')}</span>
+                <i class="fa-solid fa-arrow-right"></i>
+              </div>
             </div>
-          </div>
+          `}
 
           <!-- Informações e Destino -->
           <div style="font-size: 12px; color: #64748B; display: flex; flex-direction: column; gap: 4px;">
@@ -452,12 +499,13 @@
     if (!tbody) return;
 
     if (list.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 32px; color: #94A3B8;">Nenhum profissional cadastrado ou correspondente ao filtro.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 32px; color: #94A3B8;">Nenhum profissional cadastrado ou correspondente ao filtro.</td></tr>`;
       return;
     }
 
     tbody.innerHTML = list.map(p => {
       const name = p.profiles ? p.profiles.full_name : 'Profissional';
+      const email = p.profiles ? (p.profiles.email || 'Não informado') : 'Não informado';
       const phone = p.profiles ? (p.profiles.phone_whatsapp || p.profiles.phone || '') : '';
       const avatar = p.profiles ? p.profiles.avatar_url : null;
       const cleanPhone = phone ? phone.replace(/\D/g, '') : '';
@@ -478,6 +526,13 @@
                 <div style="font-size: 11px; color: #94A3B8;">ID: ${p.id.substring(0, 8)}...</div>
               </div>
             </div>
+          </td>
+          <td>
+            ${email !== 'Não informado' 
+              ? `<a href="mailto:${escapeHTML(email)}" style="color: #4F46E5; text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: 4px;">
+                   <i class="fa-regular fa-envelope" style="opacity: 0.7;"></i> ${escapeHTML(email)}
+                 </a>` 
+              : `<span style="color: #94A3B8;">Não informado</span>`}
           </td>
           <td>
             ${cleanPhone 
@@ -526,10 +581,11 @@
 
     const filtered = state.professionals.filter(p => {
       const name = (p.profiles?.full_name || '').toLowerCase();
+      const email = (p.profiles?.email || '').toLowerCase();
       const phone = (p.profiles?.phone_whatsapp || p.profiles?.phone || '').toLowerCase();
       const spec = (p.specialty || p.categories?.name || '').toLowerCase();
 
-      const matchesQuery = !query || name.includes(query) || phone.includes(query) || spec.includes(query);
+      const matchesQuery = !query || name.includes(query) || email.includes(query) || phone.includes(query) || spec.includes(query);
 
       let matchesStatus = true;
       if (status === 'verified') matchesStatus = p.verified === true;
@@ -571,7 +627,13 @@
               <div style="font-weight: 700; color: #0F172A;">${escapeHTML(name)}</div>
             </div>
           </td>
-          <td>${escapeHTML(email)}</td>
+          <td>
+            ${email !== 'Não informado' 
+              ? `<a href="mailto:${escapeHTML(email)}" style="color: #4F46E5; text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: 4px;">
+                   <i class="fa-regular fa-envelope" style="opacity: 0.7;"></i> ${escapeHTML(email)}
+                 </a>` 
+              : `<span style="color: #94A3B8;">Não informado</span>`}
+          </td>
           <td>${phone ? escapeHTML(phone) : '<span style="color: #94A3B8;">Não cadastrado</span>'}</td>
           <td>
             <span class="badge-status-pill ${role === 'professional' ? 'pro' : 'neutral'}">
@@ -732,11 +794,15 @@
       document.getElementById('banner-theme').value = bannerData.theme || 'purple-viral';
       document.getElementById('banner-cta-text').value = bannerData.cta_text || '';
       document.getElementById('banner-cta-link').value = bannerData.cta_link || '';
+      const imgInput = document.getElementById('banner-image-url');
+      if (imgInput) imgInput.value = bannerData.image_url || '';
       document.getElementById('banner-sort-order').value = bannerData.sort_order || 10;
       document.getElementById('banner-active').checked = bannerData.active !== false;
     } else {
       titleEl.textContent = 'Criar Novo Banner de Anúncio';
       document.getElementById('banner-id').value = '';
+      const imgInput = document.getElementById('banner-image-url');
+      if (imgInput) imgInput.value = '';
       document.getElementById('banner-theme').value = 'purple-viral';
       document.getElementById('banner-sort-order').value = 10;
       document.getElementById('banner-active').checked = true;
@@ -759,6 +825,7 @@
 
   async function saveBanner() {
     const id = document.getElementById('banner-id').value;
+    const imgUrl = (document.getElementById('banner-image-url')?.value || '').trim();
     const payload = {
       title: document.getElementById('banner-title').value.trim(),
       description: document.getElementById('banner-description').value.trim(),
@@ -766,6 +833,7 @@
       theme: document.getElementById('banner-theme').value,
       cta_text: document.getElementById('banner-cta-text').value.trim() || 'Saiba Mais',
       cta_link: document.getElementById('banner-cta-link').value.trim(),
+      image_url: imgUrl || null,
       sort_order: parseInt(document.getElementById('banner-sort-order').value, 10) || 10,
       active: document.getElementById('banner-active').checked,
       updated_at: new Date().toISOString()
@@ -1203,85 +1271,23 @@
   }
 
   // =========================================================
-  // PWA & RECURSOS MOBILE APP
-  // =========================================================
-  let deferredInstallPrompt = null;
-
-  function initPWA() {
-    // 1. Registra o Service Worker para suporte PWA & Offline
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-          .then(reg => {
-            console.log('[PWA] Service Worker registrado com sucesso:', reg.scope);
-          })
-          .catch(err => {
-            console.warn('[PWA] Falha ao registrar Service Worker:', err);
-          });
-      });
-    }
-
-    // 2. Captura o evento nativo para permitir instalação em 1 clique
-    window.addEventListener('beforeinstallprompt', e => {
-      e.preventDefault();
-      deferredInstallPrompt = e;
-      const btn = document.getElementById('btn-install-pwa');
-      if (btn) btn.style.display = 'inline-flex';
-    });
-
-    window.addEventListener('appinstalled', () => {
-      deferredInstallPrompt = null;
-      const btn = document.getElementById('btn-install-pwa');
-      if (btn) btn.style.display = 'none';
-      console.log('[PWA] Aplicativo Trampou Admin instalado!');
-    });
-  }
-
-  function promptInstallPWA() {
-    if (deferredInstallPrompt) {
-      deferredInstallPrompt.prompt();
-      deferredInstallPrompt.userChoice.then(choiceResult => {
-        if (choiceResult.outcome === 'accepted') {
-          const btn = document.getElementById('btn-install-pwa');
-          if (btn) btn.style.display = 'none';
-        }
-        deferredInstallPrompt = null;
-      });
-    } else {
-      alert('📱 Como instalar o Trampou Admin no seu celular:\n\n' +
-            '• No Android (Chrome): Toque nos 3 pontinhos do navegador e selecione "Instalar aplicativo" ou "Adicionar à tela inicial".\n\n' +
-            '• No iPhone (Safari): Toque no botão Compartilhar (quadrado com seta para cima) e escolha "Adicionar à Tela de Início".');
-    }
-  }
-
-  function toggleMobileSidebar() {
-    const sidebar = document.getElementById('admin-sidebar');
-    const overlay = document.getElementById('admin-sidebar-overlay');
-    if (!sidebar || !overlay) return;
-
-    const isOpen = sidebar.classList.contains('open');
-    if (isOpen) {
-      closeMobileSidebar();
-    } else {
-      sidebar.classList.add('open');
-      overlay.classList.add('active');
-    }
-  }
-
-  function closeMobileSidebar() {
-    const sidebar = document.getElementById('admin-sidebar');
-    const overlay = document.getElementById('admin-sidebar-overlay');
-    if (sidebar) sidebar.classList.remove('open');
-    if (overlay) overlay.classList.remove('active');
-  }
-
-  // =========================================================
   // INICIALIZAÇÃO
   // =========================================================
+  function ensureFeedbackStyles() {
+    if (document.getElementById('trampou-feedbacks-ui-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'trampou-feedbacks-ui-styles';
+    style.textContent = `.btn-admin-primary,.btn-action-primary{background:#6825B3;color:#FFFFFF!important;border:1px solid #6825B3;border-radius:8px;padding:8px 14px;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:all .15s ease;text-decoration:none}.btn-admin-primary:hover,.btn-action-primary:hover{background:#4C1D95;border-color:#4C1D95;transform:translateY(-1px)}.tab-header-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:16px;padding:20px 24px;margin-bottom:24px;box-shadow:0 1px 3px rgba(0,0,0,.05)}.tab-title{font-size:18px;font-weight:800;color:#0F172A;letter-spacing:-.3px;margin:0 0 4px}.tab-subtitle{font-size:13px;color:#64748B;margin:0;line-height:1.4}.tab-actions-row{display:flex;align-items:center;gap:10px}.btn-admin-secondary{display:inline-flex;align-items:center;gap:8px;background:#FFFFFF;border:1px solid #E2E8F0;color:#334155;font-size:13px;font-weight:700;padding:9px 16px;border-radius:10px;cursor:pointer;transition:all .15s ease}.btn-admin-secondary:hover{background:#F8FAFC;border-color:#6825B3;color:#6825B3}.admin-stats-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))!important;gap:18px!important;margin-bottom:24px!important}.admin-stat-card{background:#FFFFFF;border:1px solid #E2E8F0;border-radius:16px;padding:18px 20px;box-shadow:0 1px 3px rgba(0,0,0,.05);display:flex;align-items:center;gap:16px}.stat-icon-circle{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0}.stat-icon-circle.purple{background:#EDE9FE;color:#6825B3}.stat-icon-circle.gold{background:#FEF3C7;color:#D97706}.stat-icon-circle.blue{background:#EFF6FF;color:#2563EB}.stat-icon-circle.red{background:#FEF2F2;color:#DC2626}.stat-info{display:flex;flex-direction:column;gap:4px;min-width:0}.stat-label{font-size:12.5px;font-weight:600;color:#64748B}.stat-number{font-size:24px;font-weight:900;color:#0F172A;line-height:1.1}.admin-filter-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:14px;padding:14px 18px;margin-bottom:22px;box-shadow:0 1px 3px rgba(0,0,0,.05)}.filter-search-wrap{position:relative;flex:1;min-width:240px;display:flex;align-items:center}.filter-search-wrap i{position:absolute;left:14px;color:#94A3B8;font-size:13.5px;pointer-events:none}.filter-search-wrap input{width:100%;height:40px;padding:0 14px 0 38px;border:1px solid #E2E8F0;border-radius:10px;font-size:13px;color:#0F172A;background:#F1F5F9;outline:none}.filter-search-wrap input:focus{background:#FFFFFF;border-color:#6825B3}.filter-select-wrap{min-width:185px}.filter-select-wrap select{width:100%;height:40px;padding:0 12px;border:1px solid #E2E8F0;border-radius:10px;font-size:13px;font-weight:600;color:#334155;background:#FFFFFF;outline:none;cursor:pointer}`;
+    document.head.appendChild(style);
+  }
+
   function init() {
+    ensureFeedbackStyles();
+    if ('caches' in window) {
+      caches.keys().then(keys => keys.forEach(k => { if (k !== 'trampou-admin-v2.0.0') caches.delete(k); }));
+    }
     startLiveClock();
     initNavigation();
-    initPWA();
 
     if (isAuthenticated()) {
       showAppLayout();
@@ -1289,6 +1295,387 @@
     } else {
       const authScreen = document.getElementById('admin-auth-screen');
       if (authScreen) authScreen.style.display = 'flex';
+    }
+  }
+
+  // =========================================================
+  // GESTÃO DE SUGESTÕES & FEEDBACKS DOS USUÁRIOS
+  // =========================================================
+  async function fetchFeedbacks() {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/app_feedbacks?select=*&order=created_at.desc`, {
+        headers: getHeaders()
+      });
+      if (res.ok) {
+        state.feedbacks = await res.json();
+        updateCounters();
+        return;
+      }
+    } catch (err) {
+      console.warn('Erro ao buscar feedbacks do Supabase:', err);
+    }
+    state.feedbacks = [];
+  }
+
+  function renderFeedbacks() {
+    const listEl = document.getElementById('admin-feedbacks-list');
+    if (!listEl) return;
+
+    const searchVal = (document.getElementById('filter-feedback-search')?.value || '').toLowerCase().trim();
+    const typeVal = document.getElementById('filter-feedback-type')?.value || 'all';
+    const statusVal = document.getElementById('filter-feedback-status')?.value || 'all';
+
+    // Filtragem
+    const filtered = (state.feedbacks || []).filter(f => {
+      if (typeVal !== 'all' && f.feedback_type !== typeVal) return false;
+      if (statusVal !== 'all' && f.status !== statusVal) return false;
+      if (searchVal) {
+        const name = (f.user_name || '').toLowerCase();
+        const title = (f.title || '').toLowerCase();
+        const msg = (f.message || '').toLowerCase();
+        const city = (f.city || '').toLowerCase();
+        if (!name.includes(searchVal) && !title.includes(searchVal) && !msg.includes(searchVal) && !city.includes(searchVal)) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    // Atualiza stats cards
+    const total = state.feedbacks.length;
+    const suggestions = state.feedbacks.filter(f => f.feedback_type === 'sugestao').length;
+    const issues = state.feedbacks.filter(f => f.feedback_type === 'problema').length;
+    const ratings = state.feedbacks.map(f => Number(f.rating) || 5);
+    const avgRating = total > 0 ? (ratings.reduce((a, b) => a + b, 0) / total).toFixed(1) : '5.0';
+
+    const statTotal = document.getElementById('stat-feedbacks-total');
+    const statRating = document.getElementById('stat-feedbacks-rating');
+    const statSuggestions = document.getElementById('stat-feedbacks-suggestions');
+    const statIssues = document.getElementById('stat-feedbacks-issues');
+
+    if (statTotal) statTotal.textContent = total;
+    if (statRating) statRating.textContent = `${avgRating} ⭐`;
+    if (statSuggestions) statSuggestions.textContent = suggestions;
+    if (statIssues) statIssues.textContent = issues;
+
+    if (filtered.length === 0) {
+      listEl.innerHTML = `
+        <div class="feedbacks-empty-state">
+          <i class="fa-solid fa-lightbulb"></i>
+          <h4>Nenhum feedback encontrado</h4>
+          <p>Nenhuma sugestão enviada com os filtros atuais.</p>
+        </div>
+      `;
+      return;
+    }
+
+    listEl.innerHTML = filtered.map(f => {
+      const badgeLabels = {
+        sugestao: '<i class="fa-solid fa-lightbulb"></i> Sugestão',
+        elogio: '<i class="fa-solid fa-star"></i> Elogio',
+        problema: '<i class="fa-solid fa-triangle-exclamation"></i> Problema',
+        outro: '<i class="fa-solid fa-comment-dots"></i> Outro'
+      };
+
+      const starsCount = Math.max(1, Math.min(5, Number(f.rating) || 5));
+      const starsHtml = Array.from({ length: 5 }, (_, i) => `<i class="fa-${i < starsCount ? 'solid' : 'regular'} fa-star"></i>`).join('');
+
+      const dateStr = f.created_at ? new Date(f.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Recente';
+
+      const phone = (f.user_phone || '').trim();
+      const cleanPhone = phone ? phone.replace(/\D/g, '') : '';
+      const email = (f.user_email || '').trim();
+
+      const defaultZapMsg = `Olá ${f.user_name || ''}! Aqui é da equipe do Trampou. Recebemos sua mensagem sobre "${f.title || 'o app'}" e estamos entrando em contato para te responder!`;
+      const whatsappLink = cleanPhone
+        ? `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(f.admin_reply ? `Olá ${f.user_name || ''}! Aqui é da equipe do Trampou.\n\nEm resposta à sua mensagem sobre "${f.title || 'o app'}":\n\n${f.admin_reply}` : defaultZapMsg)}`
+        : null;
+
+      const emailSubject = encodeURIComponent(`Resposta da equipe Trampou: ${f.title || 'Seu Feedback'}`);
+      const emailBody = encodeURIComponent(`Olá ${f.user_name || ''},\n\nAqui é da equipe do Trampou!\n\n${f.admin_reply || 'Agradecemos pelo seu contato sobre o app.'}\n\nAtenciosamente,\nEquipe Trampou`);
+      const emailLink = email ? `mailto:${email}?subject=${emailSubject}&body=${emailBody}` : null;
+
+      const hasReply = !!f.admin_reply;
+      const replyDateStr = f.admin_replied_at 
+        ? new Date(f.admin_replied_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) 
+        : '';
+
+      return `
+        <div class="admin-feedback-card status-${f.status || 'pendente'}">
+          <div class="fb-card-top">
+            <span class="fb-badge ${f.feedback_type || 'sugestao'}">
+              ${badgeLabels[f.feedback_type] || '<i class="fa-solid fa-comment"></i> ' + f.feedback_type}
+            </span>
+            <span class="fb-card-date">${dateStr}</span>
+          </div>
+
+          <div class="fb-card-rating">
+            ${starsHtml}
+            <span>(${starsCount}/5)</span>
+          </div>
+
+          ${f.title ? `<h4 class="fb-card-title">${escapeHTML(f.title)}</h4>` : ''}
+          <p class="fb-card-message">${escapeHTML(f.message || '')}</p>
+
+          ${hasReply ? `
+            <div class="fb-reply-box">
+              <div class="fb-reply-header">
+                <span><i class="fa-solid fa-reply"></i> Resposta Oficial da Equipe Trampou</span>
+                <span style="font-size: 11px; color: #581C87; font-weight: 500;">${replyDateStr}</span>
+              </div>
+              <p class="fb-reply-text">${escapeHTML(f.admin_reply)}</p>
+            </div>
+          ` : ''}
+
+          ${f.admin_notes ? `
+            <div class="fb-notes-box">
+              <i class="fa-solid fa-note-sticky"></i>
+              <span><strong>Nota Interna:</strong> ${escapeHTML(f.admin_notes)}</span>
+            </div>
+          ` : ''}
+
+          <div class="fb-card-user-info">
+            <div class="fb-user-details">
+              <span class="fb-user-name">${escapeHTML(f.user_name || 'Usuário')}</span>
+              <span class="fb-user-loc"><i class="fa-solid fa-location-dot"></i> ${escapeHTML(f.city || 'Parauapebas')}, ${escapeHTML(f.state || 'PA')}</span>
+              ${email ? `<span style="font-size: 11px; color: #4F46E5; margin-top: 2px;"><i class="fa-regular fa-envelope"></i> ${escapeHTML(email)}</span>` : ''}
+              ${phone ? `<span style="font-size: 11px; color: #059669; margin-top: 1px;"><i class="fa-brands fa-whatsapp"></i> ${escapeHTML(phone)}</span>` : ''}
+            </div>
+
+            <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+              ${whatsappLink ? `
+                <a href="${whatsappLink}" target="_blank" class="fb-contact-btn" title="Conversar no WhatsApp">
+                  <i class="fa-brands fa-whatsapp"></i> WhatsApp
+                </a>
+              ` : ''}
+              ${emailLink ? `
+                <a href="${emailLink}" class="fb-contact-btn" style="background: #EFF6FF; border-color: #BFDBFE; color: #1D4ED8;" title="Enviar E-mail">
+                  <i class="fa-regular fa-envelope"></i> E-mail
+                </a>
+              ` : ''}
+              <button class="btn-action-primary" style="padding: 5px 12px; font-size: 11.5px; background: #6825B3; border-color: #6825B3;" onclick="window.AdminApp.openFeedbackReplyModal('${f.id}')">
+                <i class="fa-solid fa-reply"></i> ${hasReply ? 'Editar Resposta' : 'Responder'}
+              </button>
+            </div>
+          </div>
+
+          <div class="fb-card-footer">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 11px; font-weight: 700; color: #64748B;">Status:</span>
+              <select class="fb-status-select" onchange="window.AdminApp.updateFeedbackStatus('${f.id}', this.value)">
+                <option value="pendente" ${f.status === 'pendente' ? 'selected' : ''}>⏳ Pendente</option>
+                <option value="respondido" ${f.status === 'respondido' ? 'selected' : ''}>💬 Respondido</option>
+                <option value="em_analise" ${f.status === 'em_analise' ? 'selected' : ''}>🔍 Em Análise</option>
+                <option value="implementado" ${f.status === 'implementado' ? 'selected' : ''}>✅ Implementado</option>
+                <option value="arquivado" ${f.status === 'arquivado' ? 'selected' : ''}>📁 Arquivado</option>
+              </select>
+            </div>
+            <button class="btn-delete-fb" onclick="window.AdminApp.deleteFeedback('${f.id}')" title="Excluir feedback">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  let currentReplyFeedback = null;
+
+  function openFeedbackReplyModal(id) {
+    const feedback = state.feedbacks.find(f => f.id === id);
+    if (!feedback) return;
+
+    currentReplyFeedback = feedback;
+
+    const modal = document.getElementById('modal-feedback-reply');
+    if (!modal) return;
+
+    const idInput = document.getElementById('reply-feedback-id');
+    if (idInput) idInput.value = feedback.id;
+
+    const nameEl = document.getElementById('reply-user-name');
+    if (nameEl) nameEl.textContent = feedback.user_name || 'Usuário Sem Nome';
+    
+    const initials = (feedback.user_name || 'U').substring(0, 2).toUpperCase();
+    const avatarEl = document.getElementById('reply-user-avatar');
+    if (avatarEl) avatarEl.textContent = initials;
+
+    const badgeEl = document.getElementById('reply-feedback-badge');
+    if (badgeEl) {
+      badgeEl.className = `fb-badge ${feedback.feedback_type || 'sugestao'}`;
+      const badgeLabels = {
+        sugestao: '💡 Sugestão',
+        elogio: '⭐ Elogio',
+        problema: '⚠️ Problema',
+        outro: '💬 Outro'
+      };
+      badgeEl.innerHTML = badgeLabels[feedback.feedback_type] || feedback.feedback_type;
+    }
+
+    const titleEl = document.getElementById('reply-feedback-title');
+    if (titleEl) titleEl.textContent = feedback.title || '';
+
+    const msgEl = document.getElementById('reply-feedback-message');
+    if (msgEl) msgEl.textContent = feedback.message || '';
+
+    const contactsEl = document.getElementById('reply-user-contacts');
+    if (contactsEl) {
+      const parts = [];
+      if (feedback.user_email) parts.push(`<span><i class="fa-regular fa-envelope"></i> ${escapeHTML(feedback.user_email)}</span>`);
+      if (feedback.user_phone) parts.push(`<span><i class="fa-brands fa-whatsapp"></i> ${escapeHTML(feedback.user_phone)}</span>`);
+      parts.push(`<span><i class="fa-solid fa-location-dot"></i> ${escapeHTML(feedback.city || 'Parauapebas')}, ${escapeHTML(feedback.state || 'PA')}</span>`);
+      contactsEl.innerHTML = parts.join('');
+    }
+
+    const replyInput = document.getElementById('feedback-reply-text');
+    if (replyInput) {
+      replyInput.value = feedback.admin_reply || `Olá ${feedback.user_name || ''}! Agradecemos muito pelo seu feedback. Analisamos sua mensagem e ficamos felizes em te responder!`;
+    }
+
+    const statusSelect = document.getElementById('feedback-reply-status');
+    if (statusSelect) {
+      statusSelect.value = feedback.status === 'pendente' ? 'respondido' : (feedback.status || 'respondido');
+    }
+
+    const notesInput = document.getElementById('feedback-admin-notes');
+    if (notesInput) {
+      notesInput.value = feedback.admin_notes || '';
+    }
+
+    const btnZap = document.getElementById('btn-reply-whatsapp');
+    if (btnZap) {
+      btnZap.style.display = feedback.user_phone ? 'inline-flex' : 'none';
+    }
+
+    const btnEmail = document.getElementById('btn-reply-email');
+    if (btnEmail) {
+      btnEmail.style.display = feedback.user_email ? 'inline-flex' : 'none';
+    }
+
+    modal.classList.add('active');
+  }
+
+  function closeFeedbackReplyModal() {
+    const modal = document.getElementById('modal-feedback-reply');
+    if (modal) modal.classList.remove('active');
+    currentReplyFeedback = null;
+  }
+
+  async function saveFeedbackReply() {
+    const id = document.getElementById('reply-feedback-id')?.value;
+    const replyText = document.getElementById('feedback-reply-text')?.value.trim();
+    const newStatus = document.getElementById('feedback-reply-status')?.value || 'respondido';
+    const adminNotes = document.getElementById('feedback-admin-notes')?.value.trim();
+
+    if (!id || !replyText) {
+      alert('Por favor, digite uma resposta para salvar.');
+      return;
+    }
+
+    const btn = document.getElementById('btn-submit-reply');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Salvando...';
+    }
+
+    try {
+      const now = new Date().toISOString();
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/app_feedbacks?id=eq.${id}`, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({
+          admin_reply: replyText,
+          admin_replied_at: now,
+          status: newStatus,
+          admin_notes: adminNotes || null,
+          updated_at: now
+        })
+      });
+
+      if (res.ok) {
+        const item = state.feedbacks.find(f => f.id === id);
+        if (item) {
+          item.admin_reply = replyText;
+          item.admin_replied_at = now;
+          item.status = newStatus;
+          item.admin_notes = adminNotes || null;
+        }
+        updateCounters();
+        renderFeedbacks();
+        renderDashboard();
+        closeFeedbackReplyModal();
+        alert('✅ Resposta oficial salva com sucesso no sistema!');
+      } else {
+        alert('Erro ao salvar resposta no banco de dados.');
+      }
+    } catch (err) {
+      console.error('Erro ao salvar resposta:', err);
+      alert('Erro de conexão ao salvar resposta: ' + err.message);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Salvar Resposta Oficial';
+      }
+    }
+  }
+
+  function sendReplyViaWhatsApp() {
+    if (!currentReplyFeedback || !currentReplyFeedback.user_phone) {
+      alert('Este usuário não informou telefone/WhatsApp.');
+      return;
+    }
+    const cleanPhone = currentReplyFeedback.user_phone.replace(/\D/g, '');
+    const replyText = document.getElementById('feedback-reply-text')?.value.trim() || '';
+    const message = `Olá ${currentReplyFeedback.user_name || ''}! Aqui é da equipe do Trampou.\n\nEm resposta à sua mensagem sobre "${currentReplyFeedback.title || 'o aplicativo'}":\n\n${replyText}\n\nMuito obrigado pela colaboração!`;
+    const url = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
+  }
+
+  function sendReplyViaEmail() {
+    if (!currentReplyFeedback || !currentReplyFeedback.user_email) {
+      alert('Este usuário não informou e-mail.');
+      return;
+    }
+    const replyText = document.getElementById('feedback-reply-text')?.value.trim() || '';
+    const subject = encodeURIComponent(`Resposta da equipe Trampou: ${currentReplyFeedback.title || 'Seu Feedback'}`);
+    const body = encodeURIComponent(`Olá ${currentReplyFeedback.user_name || ''},\n\nAqui é da equipe de suporte do Trampou!\n\n${replyText}\n\nMuito obrigado pelo seu feedback!\n\nAtenciosamente,\nEquipe Trampou`);
+    window.location.href = `mailto:${currentReplyFeedback.user_email}?subject=${subject}&body=${body}`;
+  }
+
+  async function updateFeedbackStatus(id, newStatus) {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/app_feedbacks?id=eq.${id}`, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ status: newStatus, updated_at: new Date().toISOString() })
+      });
+      if (res.ok) {
+        const item = state.feedbacks.find(f => f.id === id);
+        if (item) item.status = newStatus;
+        updateCounters();
+        renderFeedbacks();
+        renderDashboard();
+      }
+    } catch (err) {
+      console.error('Erro ao atualizar status do feedback:', err);
+    }
+  }
+
+  async function deleteFeedback(id) {
+    if (!confirm('Deseja realmente excluir este feedback?')) return;
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/app_feedbacks?id=eq.${id}`, {
+        method: 'DELETE',
+        headers: getHeaders()
+      });
+      if (res.ok) {
+        state.feedbacks = state.feedbacks.filter(f => f.id !== id);
+        updateCounters();
+        renderFeedbacks();
+        renderDashboard();
+      }
+    } catch (err) {
+      console.error('Erro ao excluir feedback:', err);
     }
   }
 
@@ -1315,9 +1702,19 @@
     triggerCelebration,
     closeCelebration,
     shareMilestoneOnWhatsapp,
-    toggleMobileSidebar,
-    closeMobileSidebar,
-    promptInstallPWA
+    refreshFeedbacks: async function () {
+      await fetchFeedbacks();
+      renderFeedbacks();
+      renderDashboard();
+    },
+    filterFeedbacks: renderFeedbacks,
+    updateFeedbackStatus,
+    deleteFeedback,
+    openFeedbackReplyModal,
+    closeFeedbackReplyModal,
+    saveFeedbackReply,
+    sendReplyViaWhatsApp,
+    sendReplyViaEmail
   };
 
   // Dispara no carregamento da DOM
