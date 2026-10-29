@@ -92,14 +92,17 @@
   }
 
   // =========================================================
-  // NAVEGAÇÃO DE ABAS
+  // NAVEGAÇÃO DE ABAS (DESKTOP & MOBILE BOTTOM BAR)
   // =========================================================
   function initNavigation() {
-    const navItems = document.querySelectorAll('.admin-nav-item');
+    const navItems = document.querySelectorAll('.admin-nav-item, .bottom-nav-item[data-tab]');
     navItems.forEach(item => {
       item.addEventListener('click', () => {
         const targetTab = item.getAttribute('data-tab');
-        if (targetTab) switchTab(targetTab);
+        if (targetTab) {
+          switchTab(targetTab);
+          closeMobileSidebar();
+        }
       });
     });
   }
@@ -107,8 +110,17 @@
   function switchTab(tabId) {
     state.currentTab = tabId;
 
-    // Atualiza classes do menu
+    // Atualiza classes do menu desktop
     document.querySelectorAll('.admin-nav-item').forEach(item => {
+      if (item.getAttribute('data-tab') === tabId) {
+        item.classList.add('active');
+      } else {
+        item.classList.remove('active');
+      }
+    });
+
+    // Atualiza classes da barra inferior mobile
+    document.querySelectorAll('.bottom-nav-item[data-tab]').forEach(item => {
       if (item.getAttribute('data-tab') === tabId) {
         item.classList.add('active');
       } else {
@@ -119,10 +131,10 @@
     // Atualiza títulos do topo
     const titles = {
       dashboard: 'Visão Geral',
-      banners: 'Gerenciador de Banners & Anúncios',
-      professionals: 'Base de Profissionais Autônomos',
+      banners: 'Banners & Anúncios',
+      professionals: 'Base de Profissionais',
       users: 'Usuários Clientes',
-      monetization: 'Monetização, Faturamento & Planos PRO',
+      monetization: 'Monetização & Planos PRO',
       categories: 'Categorias de Serviços'
     };
     const titleEl = document.getElementById('admin-current-page-title');
@@ -135,6 +147,9 @@
 
     const activePane = document.getElementById(`tab-${tabId}`);
     if (activePane) activePane.classList.add('active');
+
+    // Rola para o topo suavemente no celular
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   // =========================================================
@@ -200,11 +215,19 @@
     const sCount = document.getElementById('nav-subs-count');
     const cCount = document.getElementById('nav-cats-count');
 
+    const botB = document.getElementById('bottom-banners-count');
+    const botP = document.getElementById('bottom-pros-count');
+    const botU = document.getElementById('bottom-users-count');
+
     if (bCount) bCount.textContent = state.banners.length;
     if (pCount) pCount.textContent = state.professionals.length;
     if (uCount) uCount.textContent = state.users.length;
     if (sCount) sCount.textContent = state.subscriptions.filter(s => s.status === 'active').length;
     if (cCount) cCount.textContent = state.categories.length;
+
+    if (botB) botB.textContent = state.banners.length;
+    if (botP) botP.textContent = state.professionals.length;
+    if (botU) botU.textContent = state.users.length;
   }
 
   // 1. Banners
@@ -435,7 +458,7 @@
 
     tbody.innerHTML = list.map(p => {
       const name = p.profiles ? p.profiles.full_name : 'Profissional';
-      const phone = p.profiles ? p.profiles.phone : '';
+      const phone = p.profiles ? (p.profiles.phone_whatsapp || p.profiles.phone || '') : '';
       const avatar = p.profiles ? p.profiles.avatar_url : null;
       const cleanPhone = phone ? phone.replace(/\D/g, '') : '';
       const categoryName = p.categories ? p.categories.name : (p.specialty || 'Diversos');
@@ -503,7 +526,7 @@
 
     const filtered = state.professionals.filter(p => {
       const name = (p.profiles?.full_name || '').toLowerCase();
-      const phone = (p.profiles?.phone || '').toLowerCase();
+      const phone = (p.profiles?.phone_whatsapp || p.profiles?.phone || '').toLowerCase();
       const spec = (p.specialty || p.categories?.name || '').toLowerCase();
 
       const matchesQuery = !query || name.includes(query) || phone.includes(query) || spec.includes(query);
@@ -533,7 +556,7 @@
     tbody.innerHTML = list.map(u => {
       const name = u.full_name || 'Usuário Sem Nome';
       const email = u.email || 'Não informado';
-      const phone = u.phone || '';
+      const phone = u.phone_whatsapp || u.phone || '';
       const cleanPhone = phone ? phone.replace(/\D/g, '') : '';
       const role = u.role || 'client';
       const created = u.created_at ? new Date(u.created_at).toLocaleDateString('pt-BR') : '-';
@@ -573,7 +596,7 @@
     const filtered = state.users.filter(u => {
       const name = (u.full_name || '').toLowerCase();
       const email = (u.email || '').toLowerCase();
-      const phone = (u.phone || '').toLowerCase();
+      const phone = (u.phone_whatsapp || u.phone || '').toLowerCase();
       return !query || name.includes(query) || email.includes(query) || phone.includes(query);
     });
     renderUsers(filtered);
@@ -1180,11 +1203,85 @@
   }
 
   // =========================================================
+  // PWA & RECURSOS MOBILE APP
+  // =========================================================
+  let deferredInstallPrompt = null;
+
+  function initPWA() {
+    // 1. Registra o Service Worker para suporte PWA & Offline
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => {
+            console.log('[PWA] Service Worker registrado com sucesso:', reg.scope);
+          })
+          .catch(err => {
+            console.warn('[PWA] Falha ao registrar Service Worker:', err);
+          });
+      });
+    }
+
+    // 2. Captura o evento nativo para permitir instalação em 1 clique
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      const btn = document.getElementById('btn-install-pwa');
+      if (btn) btn.style.display = 'inline-flex';
+    });
+
+    window.addEventListener('appinstalled', () => {
+      deferredInstallPrompt = null;
+      const btn = document.getElementById('btn-install-pwa');
+      if (btn) btn.style.display = 'none';
+      console.log('[PWA] Aplicativo Trampou Admin instalado!');
+    });
+  }
+
+  function promptInstallPWA() {
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      deferredInstallPrompt.userChoice.then(choiceResult => {
+        if (choiceResult.outcome === 'accepted') {
+          const btn = document.getElementById('btn-install-pwa');
+          if (btn) btn.style.display = 'none';
+        }
+        deferredInstallPrompt = null;
+      });
+    } else {
+      alert('📱 Como instalar o Trampou Admin no seu celular:\n\n' +
+            '• No Android (Chrome): Toque nos 3 pontinhos do navegador e selecione "Instalar aplicativo" ou "Adicionar à tela inicial".\n\n' +
+            '• No iPhone (Safari): Toque no botão Compartilhar (quadrado com seta para cima) e escolha "Adicionar à Tela de Início".');
+    }
+  }
+
+  function toggleMobileSidebar() {
+    const sidebar = document.getElementById('admin-sidebar');
+    const overlay = document.getElementById('admin-sidebar-overlay');
+    if (!sidebar || !overlay) return;
+
+    const isOpen = sidebar.classList.contains('open');
+    if (isOpen) {
+      closeMobileSidebar();
+    } else {
+      sidebar.classList.add('open');
+      overlay.classList.add('active');
+    }
+  }
+
+  function closeMobileSidebar() {
+    const sidebar = document.getElementById('admin-sidebar');
+    const overlay = document.getElementById('admin-sidebar-overlay');
+    if (sidebar) sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('active');
+  }
+
+  // =========================================================
   // INICIALIZAÇÃO
   // =========================================================
   function init() {
     startLiveClock();
     initNavigation();
+    initPWA();
 
     if (isAuthenticated()) {
       showAppLayout();
@@ -1217,7 +1314,10 @@
     filterUsers,
     triggerCelebration,
     closeCelebration,
-    shareMilestoneOnWhatsapp
+    shareMilestoneOnWhatsapp,
+    toggleMobileSidebar,
+    closeMobileSidebar,
+    promptInstallPWA
   };
 
   // Dispara no carregamento da DOM

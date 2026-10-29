@@ -1430,3 +1430,335 @@ body {
 .btn-admin-celeb-close:hover {
   background: #E2E8F0;
 }
+
+/* =========================================================
+   PWA & MOBILE APP RESPONSIVE SYSTEM
+   ========================================================= */
+
+/* Botão de Menu Mobile & Fechar Sidebar */
+.btn-topbar-menu {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #F1F5F9;
+  border: 1px solid #E2E8F0;
+  color: #0F172A;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-topbar-menu:hover,
+.btn-topbar-menu:active {
+  background: #E2E8F0;
+  color: #3B82F6;
+}
+
+.topbar-left-cluster {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-sidebar-close {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: #94A3B8;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-sidebar-close:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #FFFFFF;
+}
+
+/* Botão de Instalação do PWA */
+.btn-install-pwa {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  color: #FFFFFF;
+  border: none;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: pwaPulse 2.5s infinite;
+}
+
+.btn-install-pwa:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.45);
+}
+
+@keyframes pwaPulse {
+  0%, 100% { box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
+  50% { box-shadow: 0 4px 20px rgba(37, 99, 235, 0.6); }
+}
+
+/* Overlay da Sidebar Mobile */
+.admin-sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 998;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.admin-sidebar-overlay.active {
+  display: block;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Bottom Navigation Bar (Barra Inferior do App no Celular) */
+.admin-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: calc(64px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid #E2E8F0;
+  z-index: 900;
+  align-items: center;
+  justify-content: space-around;
+  box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.08);
+}
+
+.bottom-nav-item {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 8px 4px;
+  color: #64748B;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bottom-nav-item i {
+  font-size: 19px;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bottom-nav-item span {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+
+.bottom-nav-item.active {
+  color: #2563EB;
+}
+
+.bottom-nav-item.active i {
+  transform: translateY(-2px) scale(1.1);
+  color: #2563EB;
+}
+
+.bottom-nav-item.active span {
+  font-weight: 800;
+}
+
+.bottom-nav-badge {
+  position: absolute;
+  top: 4px;
+  right: calc(50% - 18px);
+  background: #EF4444;
+  color: #FFFFFF;
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 10px;
+  border: 1.5px solid #FFFFFF;
+  line-height: 1;
+}
+
+/* =========================================================
+   MEDIA QUERIES PARA CELULARES & TABLETS (PWA MOBILE)
+   ========================================================= */
+@media (max-width: 991px) {
+  /* Sidebar retrátil (Drawer) */
+  .admin-sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: -290px;
+    width: 280px;
+    z-index: 999;
+    box-shadow: none;
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+  }
+
+  .admin-sidebar.open {
+    left: 0;
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.4);
+  }
+
+  .btn-sidebar-close {
+    display: flex;
+  }
+
+  .btn-topbar-menu {
+    display: flex;
+  }
+
+  /* Main Wrap ocupa toda a largura */
+  .admin-main-wrap {
+    margin-left: 0 !important;
+    width: 100% !important;
+    min-height: 100vh;
+  }
+
+  /* Padding inferior para dar espaço à Bottom Navigation Bar */
+  .admin-content-body {
+    padding: 16px 14px calc(80px + env(safe-area-inset-bottom, 0px)) 14px !important;
+  }
+
+  /* Exibe a Bottom Bar */
+  .admin-bottom-nav {
+    display: flex;
+  }
+
+  /* Ajustes na Topbar */
+  .admin-topbar {
+    padding: 10px 14px;
+    height: 60px;
+  }
+
+  .topbar-page-info h2 {
+    font-size: 16.5px;
+  }
+
+  .status-text-desktop,
+  .avatar-name-desktop,
+  .topbar-time {
+    display: none !important;
+  }
+
+  .system-status-indicator {
+    padding: 6px 8px;
+  }
+
+  .admin-avatar-pill {
+    padding: 3px;
+  }
+
+  /* Odômetro Mobile */
+  .admin-time-clock-banner {
+    padding: 16px 14px;
+  }
+
+  .admin-time-clock-content {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .odometer-digits-track {
+    justify-content: center;
+    gap: 3px;
+  }
+
+  .odometer-digit-box {
+    width: 32px;
+    height: 44px;
+    font-size: 24px;
+    border-radius: 7px;
+  }
+
+  .odometer-digit-sublabel {
+    font-size: 8px;
+  }
+
+  /* KPIs e Grids */
+  .kpi-cards-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .kpi-stat-card {
+    padding: 14px !important;
+  }
+
+  .kpi-card-value {
+    font-size: 20px !important;
+  }
+
+  /* Banner Grid */
+  .admin-banners-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Modais no Mobile (Estilo Bottom Sheet / Full Screen limpo) */
+  .admin-modal-box {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 10px;
+    max-height: calc(100vh - 40px);
+    border-radius: 18px !important;
+  }
+
+  .admin-modal-body {
+    max-height: 65vh;
+  }
+}
+
+@media (max-width: 520px) {
+  .kpi-cards-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .admin-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .admin-card-actions {
+    width: 100%;
+  }
+
+  .admin-search-input-wrap {
+    width: 100%;
+  }
+
+  .btn-install-pwa span {
+    display: none;
+  }
+
+  .btn-install-pwa {
+    padding: 8px 10px;
+  }
+}
+

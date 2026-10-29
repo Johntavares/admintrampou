@@ -4,8 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Trampou Admin — Painel de Controle & Gestão</title>
-  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="icon" type="image/png" href="admin_logo.png">
   
+  <!-- PWA & Mobile Web App Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0F172A">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Trampou Admin">
+  <link rel="apple-touch-icon" href="admin_logo.png">
+
   <!-- Fontes Google & FontAwesome -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,7 +32,7 @@
   <div id="admin-auth-screen">
     <div class="admin-login-card">
       <div class="login-brand-badge">
-        <img src="trampou_app_icon.png" alt="Trampou">
+        <img src="admin_logo.png" alt="Trampou Admin">
         <div style="text-align: left;">
           <div class="login-brand-title">Trampou</div>
           <span class="login-pill-tag">ACESSO EXCLUSIVO</span>
@@ -69,16 +78,21 @@
   <div id="admin-app-layout" style="display: none;">
     
     <!-- SIDEBAR FIXA -->
-    <aside class="admin-sidebar">
+    <aside class="admin-sidebar" id="admin-sidebar">
       <div class="admin-sidebar-header">
         <div class="sidebar-brand">
-          <img src="trampou_app_icon.png" alt="Trampou">
+          <img src="admin_logo.png" alt="Trampou Admin">
           <div>
             <h3>Trampou</h3>
             <span style="font-size: 11px; color: #64748B; font-weight: 600;">Parauapebas / PA</span>
           </div>
         </div>
-        <span class="sidebar-badge">ADMIN</span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="sidebar-badge">ADMIN</span>
+          <button class="btn-sidebar-close" id="btn-sidebar-close" onclick="window.AdminApp.closeMobileSidebar()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
       </div>
 
       <ul class="admin-nav-list">
@@ -143,19 +157,33 @@
       </div>
     </aside>
 
+    <!-- OVERLAY ESCURO PARA FECHAR MENU NO CELULAR -->
+    <div class="admin-sidebar-overlay" id="admin-sidebar-overlay" onclick="window.AdminApp.closeMobileSidebar()"></div>
+
     <!-- CONTEÚDO PRINCIPAL -->
     <div class="admin-main-wrap">
       
-      <!-- TOPBAR FIXA -->
+      <!-- TOPBAR FIXA / RESPONSIVA -->
       <header class="admin-topbar">
-        <div class="topbar-page-info">
-          <h2 id="admin-current-page-title">Visão Geral</h2>
+        <div class="topbar-left-cluster">
+          <button class="btn-topbar-menu" id="btn-topbar-menu" title="Menu" onclick="window.AdminApp.toggleMobileSidebar()">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <div class="topbar-page-info">
+            <h2 id="admin-current-page-title">Visão Geral</h2>
+          </div>
         </div>
 
         <div class="topbar-right-actions">
+          <!-- Botão de Instalação do App PWA -->
+          <button class="btn-install-pwa" id="btn-install-pwa" style="display: none;" title="Instalar aplicativo no celular" onclick="window.AdminApp.promptInstallPWA()">
+            <i class="fa-solid fa-cloud-arrow-down"></i>
+            <span>Instalar App</span>
+          </button>
+
           <div class="system-status-indicator" title="Banco de dados Supabase sincronizado">
             <span class="status-dot"></span>
-            <span>Supabase Online</span>
+            <span class="status-text-desktop">Supabase Online</span>
           </div>
 
           <div class="topbar-time" id="admin-live-time">
@@ -168,7 +196,7 @@
 
           <div class="admin-avatar-pill">
             <div class="admin-avatar-circle">AD</div>
-            <span>Administrador</span>
+            <span class="avatar-name-desktop">Administrador</span>
           </div>
         </div>
       </header>
@@ -579,6 +607,33 @@
         </section>
 
       </main>
+
+      <!-- BARRA DE NAVEGAÇÃO INFERIOR PARA MOBILE (PWA) -->
+      <nav class="admin-bottom-nav" id="admin-bottom-nav">
+        <button class="bottom-nav-item active" data-tab="dashboard">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span>Início</span>
+        </button>
+        <button class="bottom-nav-item" data-tab="banners">
+          <i class="fa-solid fa-rectangle-ad"></i>
+          <span>Banners</span>
+          <span class="bottom-nav-badge" id="bottom-banners-count">0</span>
+        </button>
+        <button class="bottom-nav-item" data-tab="professionals">
+          <i class="fa-solid fa-user-tie"></i>
+          <span>Profissionais</span>
+          <span class="bottom-nav-badge" id="bottom-pros-count">0</span>
+        </button>
+        <button class="bottom-nav-item" data-tab="users">
+          <i class="fa-solid fa-users"></i>
+          <span>Clientes</span>
+          <span class="bottom-nav-badge" id="bottom-users-count">0</span>
+        </button>
+        <button class="bottom-nav-item" id="btn-bottom-menu" onclick="window.AdminApp.toggleMobileSidebar()">
+          <i class="fa-solid fa-bars"></i>
+          <span>Menu</span>
+        </button>
+      </nav>
     </div>
   </div>
 
