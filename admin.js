@@ -1434,23 +1434,45 @@
 
       const dateStr = f.created_at ? new Date(f.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Recente';
 
-      const phone = (f.user_phone || '').trim();
-      const cleanPhone = phone ? phone.replace(/\D/g, '') : '';
-      const email = (f.user_email || '').trim();
+      // Cruza com a tabela public.profiles (state.users) para identificar a conta real do usuário
+      const rawPhone = (f.user_phone || '').trim();
+      const rawCleanPhone = rawPhone ? rawPhone.replace(/\D/g, '') : '';
+      const rawEmail = (f.user_email || '').trim().toLowerCase();
 
-      const defaultZapMsg = `Olá ${f.user_name || ''}! Aqui é da equipe do Trampou. Recebemos sua mensagem sobre "${f.title || 'o app'}" e estamos entrando em contato para te responder!`;
+      const matchedProfile = (state.users || []).find(u => {
+        if (f.user_id && u.id === f.user_id) return true;
+        if (rawEmail && u.email && u.email.trim().toLowerCase() === rawEmail) return true;
+        const uPhone = (u.phone_whatsapp || u.phone || '').replace(/\D/g, '');
+        if (rawCleanPhone && uPhone && uPhone === rawCleanPhone) return true;
+        return false;
+      });
+
+      const displayName = matchedProfile?.full_name || f.user_name || 'Usuário';
+      const phone = (matchedProfile?.phone_whatsapp || matchedProfile?.phone || f.user_phone || '').trim();
+      const cleanPhone = phone ? phone.replace(/\D/g, '') : '';
+      const email = (matchedProfile?.email || f.user_email || '').trim();
+
+      const defaultZapMsg = `Olá ${displayName}! Aqui é da equipe do Trampou. Recebemos sua mensagem sobre "${f.title || 'o app'}" e estamos entrando em contato para te responder!`;
       const whatsappLink = cleanPhone
-        ? `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(f.admin_reply ? `Olá ${f.user_name || ''}! Aqui é da equipe do Trampou.\n\nEm resposta à sua mensagem sobre "${f.title || 'o app'}":\n\n${f.admin_reply}` : defaultZapMsg)}`
+        ? `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(f.admin_reply ? `Olá ${displayName}! Aqui é da equipe do Trampou.\n\nEm resposta à sua mensagem sobre "${f.title || 'o app'}":\n\n${f.admin_reply}` : defaultZapMsg)}`
         : null;
 
       const emailSubject = encodeURIComponent(`Resposta da equipe Trampou: ${f.title || 'Seu Feedback'}`);
-      const emailBody = encodeURIComponent(`Olá ${f.user_name || ''},\n\nAqui é da equipe do Trampou!\n\n${f.admin_reply || 'Agradecemos pelo seu contato sobre o app.'}\n\nAtenciosamente,\nEquipe Trampou`);
+      const emailBody = encodeURIComponent(`Olá ${displayName},\n\nAqui é da equipe do Trampou!\n\n${f.admin_reply || 'Agradecemos pelo seu contato sobre o app.'}\n\nAtenciosamente,\nEquipe Trampou`);
       const emailLink = email ? `mailto:${email}?subject=${emailSubject}&body=${emailBody}` : null;
 
       const hasReply = !!f.admin_reply;
       const replyDateStr = f.admin_replied_at 
         ? new Date(f.admin_replied_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) 
         : '';
+
+      const verificationBadgeHtml = matchedProfile
+        ? `<span class="badge-status-pill success" style="font-size: 10px; padding: 2px 8px;" title="Conta real autenticada na tabela profiles (ID: ${matchedProfile.id})">
+             <i class="fa-solid fa-user-check"></i> Conta Verificada (${matchedProfile.role === 'professional' ? 'Profissional' : 'Cliente'})
+           </span>`
+        : `<span class="badge-status-pill danger" style="font-size: 10px; padding: 2px 8px;" title="Este e-mail/ID não foi localizado na tabela profiles">
+             <i class="fa-solid fa-triangle-exclamation"></i> Conta Não Identificada no DB
+           </span>`;
 
       return `
         <div class="admin-feedback-card status-${f.status || 'pendente'}">
@@ -1488,10 +1510,14 @@
 
           <div class="fb-card-user-info">
             <div class="fb-user-details">
-              <span class="fb-user-name">${escapeHTML(f.user_name || 'Usuário')}</span>
+              <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                <span class="fb-user-name">${escapeHTML(displayName)}</span>
+                ${verificationBadgeHtml}
+              </div>
               <span class="fb-user-loc"><i class="fa-solid fa-location-dot"></i> ${escapeHTML(f.city || 'Parauapebas')}, ${escapeHTML(f.state || 'PA')}</span>
-              ${email ? `<span style="font-size: 11px; color: #4F46E5; margin-top: 2px;"><i class="fa-regular fa-envelope"></i> ${escapeHTML(email)}</span>` : ''}
+              ${email ? `<span style="font-size: 11px; color: #4F46E5; margin-top: 2px; word-break: break-all;"><i class="fa-regular fa-envelope"></i> ${escapeHTML(email)}</span>` : ''}
               ${phone ? `<span style="font-size: 11px; color: #059669; margin-top: 1px;"><i class="fa-brands fa-whatsapp"></i> ${escapeHTML(phone)}</span>` : ''}
+              ${matchedProfile ? `<span style="font-size: 10.5px; color: #94A3B8; margin-top: 1px;">ID da Conta: <code>${escapeHTML(matchedProfile.id.substring(0, 8))}...</code></span>` : ''}
             </div>
 
             <div class="fb-card-actions-group" style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
