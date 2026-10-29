@@ -109,7 +109,7 @@
     state.currentTab = tabId;
 
     // Atualiza classes do menu
-    document.querySelectorAll('.admin-nav-item').forEach(item => {
+    document.querySelectorAll('.admin-nav-item, .bottom-nav-item[data-tab]').forEach(item => {
       if (item.getAttribute('data-tab') === tabId) {
         item.classList.add('active');
       } else {
@@ -137,6 +137,8 @@
 
     const activePane = document.getElementById(`tab-${tabId}`);
     if (activePane) activePane.classList.add('active');
+    if (typeof closeMobileSidebar === 'function') closeMobileSidebar();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 
     if (tabId === 'feedbacks' && typeof renderFeedbacks === 'function') {
       renderFeedbacks();
@@ -214,6 +216,12 @@
     if (uCount) uCount.textContent = state.users.length;
     if (sCount) sCount.textContent = state.subscriptions.filter(s => s.status === 'active').length;
     if (cCount) cCount.textContent = state.categories.length;
+    const bbCount = document.getElementById('bottom-banners-count');
+    const bpCount = document.getElementById('bottom-pros-count');
+    const buCount = document.getElementById('bottom-users-count');
+    if (bbCount) { bbCount.textContent = state.banners.length; bbCount.style.display = state.banners.length > 0 ? 'inline-block' : 'none'; }
+    if (bpCount) { bpCount.textContent = state.professionals.length; bpCount.style.display = state.professionals.length > 0 ? 'inline-block' : 'none'; }
+    if (buCount) { buCount.textContent = state.users.length; buCount.style.display = state.users.length > 0 ? 'inline-block' : 'none'; }
     if (fbCount) {
       const pendings = state.feedbacks.filter(f => f.status === 'pendente').length;
       fbCount.textContent = pendings;
@@ -351,12 +359,12 @@
           const name = p.profiles ? p.profiles.full_name : 'Profissional';
           const spec = p.specialty || (p.categories ? p.categories.name : 'Geral');
           return `
-            <tr>
-              <td>
+            <tr class="mobile-table-card">
+              <td data-label="Profissional" class="td-card-header">
                 <div style="font-weight: 700; color: #0F172A;">${escapeHTML(name)}</div>
               </td>
-              <td>${escapeHTML(spec)}</td>
-              <td>
+              <td data-label="Especialidade">${escapeHTML(spec)}</td>
+              <td data-label="Status">
                 ${p.verified 
                   ? `<span class="badge-status-pill success"><i class="fa-solid fa-circle-check"></i> Verificado</span>` 
                   : `<span class="badge-status-pill neutral">Pendente</span>`}
@@ -384,7 +392,7 @@
           const dateStr = f.created_at ? new Date(f.created_at).toLocaleDateString('pt-BR') : '';
           const hasReply = !!f.admin_reply;
           return `
-            <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <div class="dash-feedback-preview-item">
               <div style="flex: 1; min-width: 200px;">
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap;">
                   <strong style="font-size: 13px; color: #0F172A;">${escapeHTML(f.user_name || 'Usuário')}</strong>
@@ -397,7 +405,7 @@
                 <div style="font-size: 12.5px; color: #334155; font-weight: 600;">${escapeHTML(f.title || '')}</div>
                 <p style="font-size: 12px; color: #64748B; margin: 2px 0 0; max-height: 38px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${escapeHTML(f.message || '')}</p>
               </div>
-              <div>
+              <div class="dash-feedback-preview-actions">
                 <button class="btn-action-primary" style="padding: 6px 12px; font-size: 11.5px; background: #6825B3; border-color: #6825B3;" onclick="window.AdminApp.openFeedbackReplyModal('${f.id}')">
                   <i class="fa-solid fa-reply"></i> ${hasReply ? 'Ver / Editar Resposta' : 'Responder'}
                 </button>
@@ -515,8 +523,8 @@
       const hasPro = state.subscriptions.some(s => s.professional_id === p.id && s.status === 'active');
 
       return `
-        <tr>
-          <td>
+        <tr class="mobile-table-card">
+          <td data-label="Profissional" class="td-card-header">
             <div style="display: flex; align-items: center; gap: 10px;">
               ${avatar 
                 ? `<img src="${escapeHTML(avatar)}" alt="${escapeHTML(name)}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;">` 
@@ -527,43 +535,43 @@
               </div>
             </div>
           </td>
-          <td>
+          <td data-label="E-mail">
             ${email !== 'Não informado' 
-              ? `<a href="mailto:${escapeHTML(email)}" style="color: #4F46E5; text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: 4px;">
+              ? `<a href="mailto:${escapeHTML(email)}" style="color: #4F46E5; text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: 4px; word-break: break-all;">
                    <i class="fa-regular fa-envelope" style="opacity: 0.7;"></i> ${escapeHTML(email)}
                  </a>` 
               : `<span style="color: #94A3B8;">Não informado</span>`}
           </td>
-          <td>
+          <td data-label="WhatsApp">
             ${cleanPhone 
               ? `<a href="https://wa.me/55${cleanPhone}" target="_blank" style="color: #059669; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
                    <i class="fa-brands fa-whatsapp"></i> ${escapeHTML(phone)}
                  </a>` 
               : `<span style="color: #94A3B8;">Não informado</span>`}
           </td>
-          <td>
+          <td data-label="Especialidade">
             <span class="badge-status-pill neutral">${escapeHTML(categoryName)}</span>
           </td>
-          <td>
+          <td data-label="Avaliação">
             <div style="display: flex; align-items: center; gap: 4px; font-weight: 700; color: #F59E0B;">
               <i class="fa-solid fa-star"></i>
               <span>${p.rating || '5.0'}</span>
               <span style="font-size: 11px; color: #94A3B8; font-weight: normal;">(${p.total_reviews || 0})</span>
             </div>
           </td>
-          <td>
+          <td data-label="Selo Verificado">
             <label class="switch-toggle-label" title="Clique para ativar/desativar selo oficial verificado">
               <input type="checkbox" ${p.verified ? 'checked' : ''} onchange="window.AdminApp.toggleProfessionalVerified('${p.id}', ${p.verified})">
               <span>${p.verified ? '<strong style="color: #10B981;">Verificado</strong>' : '<span style="color: #94A3B8;">Não verificado</span>'}</span>
             </label>
           </td>
-          <td>
+          <td data-label="Plano PRO">
             ${hasPro 
               ? `<span class="badge-status-pill pro"><i class="fa-solid fa-crown"></i> PRO Ativo</span>` 
               : `<span class="badge-status-pill neutral">Gratuito</span>`}
           </td>
-          <td>
-            <div style="display: flex; gap: 6px;">
+          <td data-label="Ações Rápidas" class="td-card-actions">
+            <div style="display: flex; gap: 6px; justify-content: flex-end; width: 100%;">
               <button class="btn-action-primary" style="padding: 6px 10px; font-size: 11px;" onclick="window.AdminApp.openSubscriptionModal('${p.id}')">
                 <i class="fa-solid fa-crown"></i>
                 <span>Dar PRO</span>
@@ -618,8 +626,8 @@
       const created = u.created_at ? new Date(u.created_at).toLocaleDateString('pt-BR') : '-';
 
       return `
-        <tr>
-          <td>
+        <tr class="mobile-table-card">
+          <td data-label="Usuário" class="td-card-header">
             <div style="display: flex; align-items: center; gap: 10px;">
               <div class="admin-avatar-circle" style="width: 34px; height: 34px; font-size: 12px; background: #3B82F6;">
                 ${escapeHTML(name.substring(0, 2).toUpperCase())}
@@ -627,21 +635,21 @@
               <div style="font-weight: 700; color: #0F172A;">${escapeHTML(name)}</div>
             </div>
           </td>
-          <td>
+          <td data-label="E-mail">
             ${email !== 'Não informado' 
-              ? `<a href="mailto:${escapeHTML(email)}" style="color: #4F46E5; text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: 4px;">
+              ? `<a href="mailto:${escapeHTML(email)}" style="color: #4F46E5; text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: 4px; word-break: break-all;">
                    <i class="fa-regular fa-envelope" style="opacity: 0.7;"></i> ${escapeHTML(email)}
                  </a>` 
               : `<span style="color: #94A3B8;">Não informado</span>`}
           </td>
-          <td>${phone ? escapeHTML(phone) : '<span style="color: #94A3B8;">Não cadastrado</span>'}</td>
-          <td>
+          <td data-label="Telefone">${phone ? escapeHTML(phone) : '<span style="color: #94A3B8;">Não cadastrado</span>'}</td>
+          <td data-label="Tipo">
             <span class="badge-status-pill ${role === 'professional' ? 'pro' : 'neutral'}">
               ${role === 'professional' ? 'Profissional' : 'Cliente'}
             </span>
           </td>
-          <td>${created}</td>
-          <td>
+          <td data-label="Cadastro">${created}</td>
+          <td data-label="Contato" class="td-card-actions">
             ${cleanPhone 
               ? `<a href="https://wa.me/55${cleanPhone}" target="_blank" class="btn-action-primary" style="padding: 5px 10px; font-size: 11px; text-decoration: none; background: #059669; border-color: #059669;">
                    <i class="fa-brands fa-whatsapp"></i> Conversar
@@ -714,20 +722,20 @@
       const isActive = s.status === 'active';
 
       return `
-        <tr>
-          <td>
+        <tr class="mobile-table-card">
+          <td data-label="Profissional" class="td-card-header">
             <div style="font-weight: 700; color: #0F172A;">${escapeHTML(proName)}</div>
           </td>
-          <td><span class="badge-status-pill pro">${escapeHTML(plan)}</span></td>
-          <td style="font-weight: 800; color: #059669;">${amount}</td>
-          <td>${start}</td>
-          <td>${expires}</td>
-          <td>
+          <td data-label="Plano"><span class="badge-status-pill pro">${escapeHTML(plan)}</span></td>
+          <td data-label="Valor" style="font-weight: 800; color: #059669;">${amount}</td>
+          <td data-label="Início">${start}</td>
+          <td data-label="Expiração">${expires}</td>
+          <td data-label="Status">
             ${isActive 
               ? `<span class="badge-status-pill success"><i class="fa-solid fa-circle-check"></i> Ativo</span>` 
               : `<span class="badge-status-pill danger">Expirado</span>`}
           </td>
-          <td>
+          <td data-label="Ações" class="td-card-actions">
             ${isActive 
               ? `<button class="btn-action-icon danger" title="Cancelar Assinatura" onclick="window.AdminApp.cancelSubscription('${s.id}')">
                    <i class="fa-solid fa-ban"></i>
@@ -755,18 +763,21 @@
       // Conta quantos profissionais pertencem a essa categoria
       const count = state.professionals.filter(p => p.category_id === c.id).length;
       return `
-        <tr>
-          <td>
-            <div class="kpi-icon-box purple" style="width: 32px; height: 32px; font-size: 13px;">
-              <i class="fa-solid fa-briefcase"></i>
+        <tr class="mobile-table-card">
+          <td data-label="Ícone" class="td-card-header">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="kpi-icon-box purple" style="width: 32px; height: 32px; font-size: 13px;">
+                <i class="fa-solid fa-briefcase"></i>
+              </div>
+              <span class="mobile-only-cat-name" style="font-weight: 700; color: #0F172A; display: none;">${escapeHTML(c.name)}</span>
             </div>
           </td>
-          <td style="font-weight: 700; color: #0F172A;">${escapeHTML(c.name)}</td>
-          <td><code>${escapeHTML(c.slug)}</code></td>
-          <td>
+          <td data-label="Categoria" style="font-weight: 700; color: #0F172A;">${escapeHTML(c.name)}</td>
+          <td data-label="Slug"><code>${escapeHTML(c.slug)}</code></td>
+          <td data-label="Profissionais">
             <span class="badge-status-pill neutral"><strong>${count}</strong> profissionais</span>
           </td>
-          <td>
+          <td data-label="Status">
             <span class="badge-status-pill success"><i class="fa-solid fa-check"></i> Ativa</span>
           </td>
         </tr>
@@ -1281,10 +1292,51 @@
     document.head.appendChild(style);
   }
 
+  let deferredInstallPrompt = null;
+
+  function toggleMobileSidebar() {
+    const sidebar = document.getElementById('admin-sidebar');
+    const overlay = document.getElementById('admin-sidebar-overlay');
+    if (!sidebar || !overlay) return;
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('active');
+  }
+
+  function closeMobileSidebar() {
+    const sidebar = document.getElementById('admin-sidebar');
+    const overlay = document.getElementById('admin-sidebar-overlay');
+    if (sidebar) sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('active');
+  }
+
+  function promptInstallPWA() {
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      deferredInstallPrompt.userChoice.then(choiceResult => {
+        if (choiceResult.outcome === 'accepted') {
+          const btn = document.getElementById('btn-install-pwa');
+          if (btn) btn.style.display = 'none';
+        }
+        deferredInstallPrompt = null;
+      });
+    } else {
+      alert('📱 Como instalar o Trampou Admin no seu celular:\n\n• No Android (Chrome): Toque nos 3 pontinhos do navegador e selecione "Instalar aplicativo" ou "Adicionar à tela inicial".\n\n• No iPhone (Safari): Toque no botão Compartilhar e escolha "Adicionar à Tela de Início".');
+    }
+  }
+
   function init() {
     ensureFeedbackStyles();
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      const btn = document.getElementById('btn-install-pwa');
+      if (btn) btn.style.display = 'inline-flex';
+    });
     if ('caches' in window) {
       caches.keys().then(keys => keys.forEach(k => { if (k !== 'trampou-admin-v2.0.0') caches.delete(k); }));
+    }
+    if ('serviceWorker' in navigator && (location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+      navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
     }
     startLiveClock();
     initNavigation();
@@ -1442,7 +1494,7 @@
               ${phone ? `<span style="font-size: 11px; color: #059669; margin-top: 1px;"><i class="fa-brands fa-whatsapp"></i> ${escapeHTML(phone)}</span>` : ''}
             </div>
 
-            <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+            <div class="fb-card-actions-group" style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
               ${whatsappLink ? `
                 <a href="${whatsappLink}" target="_blank" class="fb-contact-btn" title="Conversar no WhatsApp">
                   <i class="fa-brands fa-whatsapp"></i> WhatsApp
@@ -1714,7 +1766,10 @@
     closeFeedbackReplyModal,
     saveFeedbackReply,
     sendReplyViaWhatsApp,
-    sendReplyViaEmail
+    sendReplyViaEmail,
+    toggleMobileSidebar,
+    closeMobileSidebar,
+    promptInstallPWA
   };
 
   // Dispara no carregamento da DOM
