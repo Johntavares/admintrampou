@@ -248,7 +248,11 @@
       headers: getHeaders()
     });
     if (res.ok) {
-      state.professionals = await res.json();
+      const raw = await res.json();
+      state.professionals = (raw || []).map(p => ({
+        ...p,
+        verified: Boolean(p.verified || (p.profiles && p.profiles.is_verified))
+      }));
     } else {
       state.professionals = [];
     }
@@ -561,8 +565,8 @@
           </td>
           <td data-label="Selo Verificado">
             <label class="switch-toggle-label" title="Clique para ativar/desativar selo oficial verificado">
-              <input type="checkbox" ${p.verified ? 'checked' : ''} onchange="window.AdminApp.toggleProfessionalVerified('${p.id}', ${p.verified})">
-              <span>${p.verified ? '<strong style="color: #10B981;">Verificado</strong>' : '<span style="color: #94A3B8;">Não verificado</span>'}</span>
+              <input type="checkbox" ${p.verified ? 'checked' : ''} onchange="window.AdminApp.toggleProfessionalVerified('${p.id}', ${Boolean(p.verified)})">
+              <span>${p.verified ? '<strong style="color: #10B981;"><i class="fa-solid fa-circle-check"></i> Verificado</strong>' : '<span style="color: #94A3B8;">Não verificado</span>'}</span>
             </label>
           </td>
           <td data-label="Plano PRO">
@@ -939,24 +943,48 @@
   // OPERAÇÕES: PROFISSIONAIS
   // =========================================================
   async function toggleProfessionalVerified(id, currentStatus) {
-    const newStatus = !currentStatus;
+    const pro = state.professionals.find(p => p.id === id);
+    const baseStatus = pro ? Boolean(pro.verified) : Boolean(currentStatus);
+    const newStatus = !baseStatus;
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/professional_profiles?id=eq.${id}`, {
-        method: 'PATCH',
+      let savedOk = false;
+
+      // 1. Tenta via RPC SECURITY DEFINER (atualiza professional_profiles.verified e profiles.is_verified simultaneamente)
+      const rpcRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/admin_set_professional_verified`, {
+        method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({ verified: newStatus, updated_at: new Date().toISOString() })
+        body: JSON.stringify({ p_pro_id: id, p_verified: newStatus })
       });
 
-      if (res.ok) {
-        const pro = state.professionals.find(p => p.id === id);
-        if (pro) pro.verified = newStatus;
-        renderDashboard();
-        renderProfessionals();
+      if (rpcRes.ok) {
+        savedOk = true;
       } else {
-        alert('Erro ao atualizar verificação do profissional.');
+        // 2. Fallback direto via PATCH na tabela professional_profiles
+        const patchRes = await fetch(`${SUPABASE_URL}/rest/v1/professional_profiles?id=eq.${id}`, {
+          method: 'PATCH',
+          headers: getHeaders(),
+          body: JSON.stringify({ verified: newStatus, updated_at: new Date().toISOString() })
+        });
+        if (patchRes.ok) {
+          const rows = await patchRes.json().catch(() => []);
+          savedOk = Array.isArray(rows) ? rows.length > 0 : true;
+        }
+      }
+
+      if (savedOk) {
+        if (pro) {
+          pro.verified = newStatus;
+          if (pro.profiles) pro.profiles.is_verified = newStatus;
+        }
+        renderDashboard();
+        filterProfessionals();
+      } else {
+        alert('Erro ao salvar o status de verificação no banco de dados.');
+        filterProfessionals();
       }
     } catch (err) {
       alert('Falha ao atualizar status de verificação: ' + err.message);
+      filterProfessionals();
     }
   }
 
