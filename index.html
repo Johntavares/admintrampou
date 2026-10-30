@@ -1074,58 +1074,96 @@
         <input type="hidden" id="banner-id">
         <div class="admin-modal-body">
           <div class="admin-input-group">
-            <label for="banner-title">Título do Banner *</label>
-            <input type="text" id="banner-title" required placeholder="Ex: Anuncie seu Comércio Aqui!">
+            <label for="banner-title">Nome do Anúncio / Anunciante *</label>
+            <input type="text" id="banner-title" required placeholder="Ex: HÜBB Mercados Autônomos">
           </div>
 
+          <!-- Upload da imagem do banner -->
           <div class="admin-input-group">
-            <label for="banner-description">Descrição Breve *</label>
-            <textarea id="banner-description" rows="2" required
-              placeholder="Ex: Alcance milhares de clientes em Parauapebas todos os dias."></textarea>
+            <label>Imagem do Banner <small style="color:#94A3B8; font-weight:500;">(recomendado 1600×640 px — proporção 2,5:1)</small></label>
+            <div id="banner-upload-box" style="border: 2px dashed #CBD5E1; border-radius: 12px; background: #F8FAFC; padding: 12px; text-align: center; cursor: pointer;" onclick="document.getElementById('banner-image-file').click()">
+              <img id="banner-image-preview" alt="Prévia do banner" style="display: none; width: 100%; aspect-ratio: 2.5 / 1; object-fit: cover; border-radius: 8px; margin-bottom: 8px;">
+              <div id="banner-upload-placeholder" style="padding: 14px 0; color: #64748B; font-size: 13px;">
+                <i class="fa-solid fa-cloud-arrow-up" style="font-size: 26px; color: #6825B3; display: block; margin-bottom: 6px;"></i>
+                Clique para enviar a imagem (JPG, PNG ou WEBP até 5 MB)
+              </div>
+              <div id="banner-upload-status" style="display: none; font-size: 12px; font-weight: 600; color: #6825B3;"></div>
+            </div>
+            <input type="file" id="banner-image-file" accept="image/jpeg,image/png,image/webp" style="display: none;" onchange="window.AdminApp.handleBannerImageSelect(this)">
+            <div style="display: flex; gap: 8px; margin-top: 6px; align-items: center;">
+              <input type="text" id="banner-image-url" placeholder="ou cole a URL de uma imagem (https://...)" style="flex: 1;" oninput="window.AdminApp.updateBannerImagePreview(this.value)">
+              <button type="button" class="btn-admin-secondary" style="padding: 8px 12px;" onclick="window.AdminApp.clearBannerImage()" title="Remover imagem">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
           </div>
 
-          <div class="admin-form-grid-2">
+          <!-- Link de direcionamento -->
+          <div class="admin-form-grid-2" style="display: grid; grid-template-columns: 1fr 1.6fr; gap: 12px;">
             <div class="admin-input-group">
-              <label for="banner-badge">Badge / Etiqueta</label>
-              <input type="text" id="banner-badge" placeholder="Ex: PROMOÇÃO, DESTAQUE, PARCEIRO">
-            </div>
-
-            <div class="admin-input-group">
-              <label for="banner-theme">Tema Visual *</label>
-              <select id="banner-theme">
-                <option value="purple-viral">Roxo Neon Trampou</option>
-                <option value="emerald-pro">Verde Esmeralda Pro</option>
-                <option value="amber-deal">Dourado / Oferta Ouro</option>
-                <option value="dark-gold">Dark Enterprise Luxo</option>
+              <label for="banner-link-type">Ao tocar no banner *</label>
+              <select id="banner-link-type" onchange="window.AdminApp.handleBannerLinkTypeChange()">
+                <option value="instagram">Abrir Instagram</option>
+                <option value="whatsapp">Abrir WhatsApp</option>
+                <option value="site">Abrir site / link</option>
+                <option value="share">Compartilhar o Trampou</option>
+                <option value="pwa">Instalar o App</option>
+                <option value="none">Não fazer nada</option>
               </select>
             </div>
-          </div>
-
-          <div class="admin-form-grid-2">
-            <div class="admin-input-group">
-              <label for="banner-cta-text">Texto do Botão *</label>
-              <input type="text" id="banner-cta-text" required placeholder="Ex: Saiba Mais, Chamar no Zap">
-            </div>
-
-            <div class="admin-input-group">
-              <label for="banner-cta-link">Link de Destino (URL / WhatsApp) *</label>
-              <input type="text" id="banner-cta-link" required placeholder="Ex: https://wa.me/55949... ou link">
+            <div class="admin-input-group" id="banner-link-value-group">
+              <label for="banner-cta-link" id="banner-link-value-label">Perfil do Instagram *</label>
+              <input type="text" id="banner-cta-link" placeholder="@perfil ou https://instagram.com/perfil">
             </div>
           </div>
 
-          <div class="admin-form-grid-2" style="align-items: center;">
+          <!-- Tempo de exibição, ordem e status -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; align-items: end;">
+            <div class="admin-input-group">
+              <label for="banner-duration">Tempo na tela (seg.)</label>
+              <input type="number" id="banner-duration" value="5" min="2" max="60" step="1">
+            </div>
             <div class="admin-input-group">
               <label for="banner-sort-order">Ordem de Exibição</label>
-              <input type="number" id="banner-sort-order" value="10" min="1">
+              <input type="number" id="banner-sort-order" value="10" min="0">
             </div>
-
-            <div class="admin-checkbox-row">
+            <div style="padding-bottom: 10px;">
               <label class="switch-toggle-label">
                 <input type="checkbox" id="banner-active" checked>
-                <span>Ativo no App imediatamente</span>
+                <span>Ativo no App</span>
               </label>
             </div>
           </div>
+
+          <!-- Opções para banner apenas com texto (sem imagem) -->
+          <details id="banner-text-options" style="margin-top: 6px; border: 1px solid #E2E8F0; border-radius: 10px; padding: 8px 12px;">
+            <summary style="cursor: pointer; font-size: 12.5px; font-weight: 700; color: #334155;">Banner sem imagem (apenas texto) — opcional</summary>
+            <div style="margin-top: 10px;">
+              <div class="admin-input-group">
+                <label for="banner-description">Descrição Breve</label>
+                <textarea id="banner-description" rows="2" placeholder="Ex: Alcance milhares de clientes todos os dias."></textarea>
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="admin-input-group">
+                  <label for="banner-badge">Badge / Etiqueta</label>
+                  <input type="text" id="banner-badge" placeholder="Ex: PROMOÇÃO, PARCEIRO">
+                </div>
+                <div class="admin-input-group">
+                  <label for="banner-theme">Tema Visual</label>
+                  <select id="banner-theme">
+                    <option value="purple-viral">Roxo Neon Trampou</option>
+                    <option value="emerald-pro">Verde Esmeralda Pro</option>
+                    <option value="amber-deal">Dourado / Oferta Ouro</option>
+                    <option value="dark-gold">Dark Enterprise Luxo</option>
+                  </select>
+                </div>
+              </div>
+              <div class="admin-input-group">
+                <label for="banner-cta-text">Texto do Botão</label>
+                <input type="text" id="banner-cta-text" placeholder="Ex: Saiba Mais, Chamar no Zap">
+              </div>
+            </div>
+          </details>
         </div>
 
         <div class="admin-modal-footer">
